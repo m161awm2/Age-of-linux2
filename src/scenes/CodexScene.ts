@@ -113,11 +113,34 @@ export class CodexScene extends Phaser.Scene {
     const descriptionHeight = Math.max(58, height - descriptionTop - 52);
     const descriptionPanel = this.add.graphics()
       .fillStyle(0x0c1813, .95).fillRoundedRect(78, descriptionTop, width - 156, descriptionHeight, 10)
-      .lineStyle(1, 0x7d7047, .7).strokeRoundedRect(78, descriptionTop, width - 156, descriptionHeight, 10);
-    const descriptionLabel = this.add.text(94, descriptionTop + 11, '병종 설명', {
+      .lineStyle(1, 0x7d7047, .7).strokeRoundedRect(78, descriptionTop, width - 156, descriptionHeight, 10)
+      .lineStyle(1, 0x89936f, .22).lineBetween(90, descriptionTop + 45, width - 90, descriptionTop + 45);
+    const dps = definition.damage / definition.attackInterval;
+    const stats = [
+      { label: '체력', value: `${definition.hp}` },
+      { label: '공격력', value: `${definition.damage}` },
+      { label: 'DPS', value: dps.toFixed(2) },
+      { label: '공격 간격', value: `${definition.attackInterval}초` },
+      { label: '사거리', value: `${definition.rangeTiles}칸` },
+      { label: '이동속도', value: `${definition.speedMultiplier}배` },
+      { label: '생산 비용', value: `${definition.cost}G` },
+    ];
+    const statsLeft = 92;
+    const statWidth = (width - statsLeft * 2) / stats.length;
+    stats.forEach((stat, statIndex) => {
+      const statX = statsLeft + statWidth * (statIndex + .5);
+      const statLabel = this.add.text(statX, descriptionTop + 9, stat.label, {
+        fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: '9px', color: '#8fa095',
+      }).setOrigin(.5, 0);
+      const statValue = this.add.text(statX, descriptionTop + 23, stat.value, {
+        fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#f0dfa0',
+      }).setOrigin(.5, 0);
+      this.pageObjects.push(statLabel, statValue);
+    });
+    const descriptionLabel = this.add.text(94, descriptionTop + 53, '병종 설명', {
       fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#d8c978',
     });
-    const descriptionText = this.add.text(94, descriptionTop + 31, description, {
+    const descriptionText = this.add.text(94, descriptionTop + 73, description, {
       fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: `${Math.min(15, width / 62)}px`,
       color: description === DESCRIPTION_PLACEHOLDER ? '#78847b' : '#e6e2cf',
       wordWrap: { width: width - 188 }, lineSpacing: 5,
