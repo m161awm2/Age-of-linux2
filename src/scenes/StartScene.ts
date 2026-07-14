@@ -5,6 +5,7 @@ import { AudioService } from '../services/AudioService';
 import { SettingsPanel } from '../ui/SettingsPanel';
 import { TutorialProgressService } from '../services/TutorialProgressService';
 import { AuthService } from '../services/AuthService';
+import { HomeChatPanel } from '../ui/HomeChatPanel';
 
 const DIFFICULTY_STYLES: Record<Difficulty, { top: number; bottom: number; border: number; glow: number; symbol: string; hint: string }> = {
   Easy: { top: 0x39895b, bottom: 0x17452e, border: 0x8be2aa, glow: 0x69d894, symbol: '◆', hint: '여유로운 전투' },
@@ -30,6 +31,8 @@ export class StartScene extends Phaser.Scene {
     this.add.image(width / 2, height, 'ground').setOrigin(.5, 1).setDisplaySize(width, height);
     this.add.rectangle(width / 2, height / 2, width, height, 0x07120e, .42);
     this.createLogoutButton(width - 70, 36);
+    const chatPanel = new HomeChatPanel();
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => chatPanel.destroy());
 
     const logo = this.add.image(width / 2, Math.max(130, height * .23), 'logo')
       .setDisplaySize(Math.min(760, width * .75), Math.min(254, width * .25));

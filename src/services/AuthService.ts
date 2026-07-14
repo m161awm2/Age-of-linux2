@@ -7,6 +7,12 @@ export interface SignUpResult {
 }
 
 export class AuthService {
+  static async getSessionUser(): Promise<User | null> {
+    const { data, error } = await supabase.auth.getSession();
+    if (error || !data.session?.user || data.session.user.is_anonymous) return null;
+    return data.session.user;
+  }
+
   static async getUser(): Promise<User | null> {
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) return null;

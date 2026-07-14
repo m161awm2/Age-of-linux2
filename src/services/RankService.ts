@@ -108,7 +108,7 @@ export class RankService {
   private static async ensureAuthenticated(): Promise<string> {
     if (!this.authPromise) {
       this.authPromise = (async () => {
-        const user = await AuthService.getUser();
+        const user = await AuthService.getSessionUser();
         if (!user) throw new Error('로그인이 필요합니다.');
         return user.id;
       })().catch((error) => {
