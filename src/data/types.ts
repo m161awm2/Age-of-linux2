@@ -43,4 +43,6 @@ export interface GameLaunchData {
 export interface GameResultData extends GameLaunchData {
   victory: boolean;
   elapsedSeconds: number;
+  rankedRunId?: string;
+  unitComposition: Partial<Record<UnitKind, number>>;
 }

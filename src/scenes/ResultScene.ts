@@ -1,9 +1,11 @@
 import Phaser from 'phaser';
 import { DIFFICULTIES } from '../data/constants';
 import type { GameResultData } from '../data/types';
+import { RankService } from '../services/RankService';
 
 export class ResultScene extends Phaser.Scene {
   private result!: GameResultData;
+  private submitting = false;
   constructor() { super('ResultScene'); }
   init(data: GameResultData): void { this.result = data; }
 
@@ -21,14 +23,57 @@ export class ResultScene extends Phaser.Scene {
     this.add.text(width / 2, height * .46, `${DIFFICULTIES[this.result.difficulty].label} · 전투 시간 ${minutes}:${seconds}`, {
       fontFamily: 'Pretendard, sans-serif', fontSize: '22px', color: '#f8efd5',
     }).setOrigin(.5);
-    this.createButton(width / 2 - 105, height * .62, '다시 전투', () => this.scene.start('GameScene', { difficulty: this.result.difficulty }));
-    this.createButton(width / 2 + 105, height * .62, '시작 화면', () => this.scene.start('StartScene'));
+    const actionsY = this.result.victory ? height * .72 : height * .62;
+    this.createButton(width / 2 - 105, actionsY, '다시 전투', () => this.scene.start('GameScene', { difficulty: this.result.difficulty }));
+    this.createButton(width / 2 + 105, actionsY, '시작 화면', () => this.scene.start('StartScene'));
+    if (this.result.victory) this.createRankSubmission(width / 2, height * .59);
     this.input.keyboard?.on('keydown-R', () => this.scene.start('GameScene', { difficulty: this.result.difficulty }));
   }
 
-  private createButton(x: number, y: number, label: string, action: () => void): void {
+  private createRankSubmission(x: number, y: number): void {
+    const status = this.add.text(x, y, '', {
+      fontFamily: 'Pretendard, sans-serif', fontSize: '15px', color: '#e9e4bd', align: 'center',
+    }).setOrigin(.5);
+    if (!this.result.rankedRunId) {
+      status.setText('랭킹 서버에 연결되지 않아 이번 기록은 등록할 수 없습니다.').setColor('#e7b29d');
+      return;
+    }
+
+    const savedNickname = RankService.getNickname();
+    if (savedNickname) {
+      status.setText(`${savedNickname} 이름으로 기록을 등록하는 중…`);
+      void this.submitRank(savedNickname, status);
+      return;
+    }
+
+    const registrationButton = this.createButton(x, y, '랭킹 기록 등록', () => {
+      const nickname = RankService.promptForNickname();
+      if (nickname) {
+        registrationButton.forEach((object) => object.destroy());
+        void this.submitRank(nickname, status);
+      }
+    });
+  }
+
+  private async submitRank(nickname: string, status: Phaser.GameObjects.Text): Promise<void> {
+    if (this.submitting || !this.result.rankedRunId) return;
+    this.submitting = true;
+    status.setText(`${nickname} 이름으로 기록을 등록하는 중…`).setColor('#e9e4bd');
+    try {
+      const result = await RankService.finishRun(this.result.rankedRunId, nickname, this.result.unitComposition);
+      const message = result.personal_best ? '개인 최고 기록이 랭킹에 등록되었습니다!' : '전투 기록이 확인되었습니다. 기존 최고 기록을 유지합니다.';
+      status.setText(message).setColor(result.personal_best ? '#dff28b' : '#d5cfaa');
+    } catch (error) {
+      console.warn('랭킹 기록 등록 실패', error);
+      status.setText('기록 등록에 실패했습니다. 잠시 후 다시 시도해 주세요.').setColor('#ffb09c');
+      this.submitting = false;
+    }
+  }
+
+  private createButton(x: number, y: number, label: string, action: () => void): Phaser.GameObjects.GameObject[] {
     const button = this.add.rectangle(x, y, 185, 62, 0x294838).setStrokeStyle(2, 0xbcd277).setInteractive({ useHandCursor: true });
-    this.add.text(x, y, label, { fontFamily: 'Pretendard, sans-serif', fontSize: '20px', fontStyle: 'bold', color: '#fff5d2' }).setOrigin(.5);
+    const text = this.add.text(x, y, label, { fontFamily: 'Pretendard, sans-serif', fontSize: '20px', fontStyle: 'bold', color: '#fff5d2' }).setOrigin(.5);
     button.on('pointerover', () => button.setScale(1.04)).on('pointerout', () => button.setScale(1)).on('pointerdown', action);
+    return [button, text];
   }
 }

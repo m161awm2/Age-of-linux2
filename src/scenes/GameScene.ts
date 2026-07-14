@@ -9,6 +9,7 @@ import type { Difficulty, GameLaunchData, UnitKind } from '../data/types';
 import { BaseEntity } from '../entities/BaseEntity';
 import { CombatUnit } from '../entities/CombatUnit';
 import { GameProgressService } from '../services/GameProgressService';
+import { RankService } from '../services/RankService';
 import { AISystem } from '../systems/AISystem';
 import { CombatSystem } from '../systems/CombatSystem';
 import { EconomySystem } from '../systems/EconomySystem';
@@ -27,10 +28,12 @@ export class GameScene extends Phaser.Scene {
   private enemyBase!: BaseEntity;
   private playerUnits: CombatUnit[] = [];
   private enemyUnits: CombatUnit[] = [];
+  private unitComposition: Partial<Record<UnitKind, number>> = {};
   private hud!: GameHud;
   private settingsPanel!: SettingsPanel;
   private startedAt = 0;
   private finished = false;
+  private rankedRunPromise: Promise<string | null> = Promise.resolve(null);
   private lastEnemySupplyHp = 0;
   private promotionMode: PromotionMode | null = null;
   private promotionOptions: PromotionOption[] = [];
@@ -48,7 +51,9 @@ export class GameScene extends Phaser.Scene {
     this.movement = new MovementSystem();
     this.playerUnits = [];
     this.enemyUnits = [];
+    this.unitComposition = {};
     this.finished = false;
+    this.rankedRunPromise = Promise.resolve(null);
     this.promotionMode = null;
     this.promotionOptions = [];
     this.specialReadyAt = 0;
@@ -70,6 +75,7 @@ export class GameScene extends Phaser.Scene {
     this.events.on('battle-message', this.onBattleMessage, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
     this.hud.message(`${difficultyConfig.label} 난이도 전투가 시작되었습니다.`);
+    this.rankedRunPromise = RankService.startRun(this.difficulty);
   }
 
   update(_time: number, delta: number): void {
@@ -176,6 +182,7 @@ export class GameScene extends Phaser.Scene {
     const x = team === 'player' ? PLAYER_BASE_X + 185 : ENEMY_BASE_X - 185;
     const unit = new CombatUnit(this, UNITS[kind], team, x, GROUND_Y + 2);
     (team === 'player' ? this.playerUnits : this.enemyUnits).push(unit);
+    if (team === 'player') this.unitComposition[kind] = (this.unitComposition[kind] ?? 0) + 1;
   }
 
   private openPromotion(mode: PromotionMode): void {
@@ -334,7 +341,16 @@ export class GameScene extends Phaser.Scene {
     if (this.finished) return;
     this.finished = true;
     this.closePromotion();
-    this.time.delayedCall(700, () => this.scene.start('ResultScene', { victory, elapsedSeconds, difficulty: this.difficulty }));
+    this.time.delayedCall(700, () => {
+      const rankedRun = Promise.race([
+        this.rankedRunPromise,
+        new Promise<null>((resolve) => window.setTimeout(() => resolve(null), 1200)),
+      ]);
+      void rankedRun.then((rankedRunId) => this.scene.start('ResultScene', {
+        victory, elapsedSeconds, difficulty: this.difficulty, rankedRunId: rankedRunId ?? undefined,
+        unitComposition: { ...this.unitComposition },
+      }));
+    });
   }
 
   private onBattleMessage(message: string): void { this.hud.message(message); }

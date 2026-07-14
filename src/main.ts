@@ -6,6 +6,7 @@ import { ResultScene } from './scenes/ResultScene';
 import { StartScene } from './scenes/StartScene';
 import { CodexScene } from './scenes/CodexScene';
 import { TutorialScene } from './scenes/TutorialScene';
+import { RankScene } from './scenes/RankScene';
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -17,7 +18,7 @@ const config: Phaser.Types.Core.GameConfig = {
   antialias: true,
   render: { roundPixels: true, powerPreference: 'high-performance' },
   scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH, min: { width: 720, height: 480 } },
-  scene: [BootScene, StartScene, TutorialScene, CodexScene, GameScene, ResultScene],
+  scene: [BootScene, StartScene, TutorialScene, CodexScene, RankScene, GameScene, ResultScene],
   input: { mouse: { preventDefaultWheel: true }, touch: { capture: true } },
 };
 

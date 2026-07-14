@@ -39,19 +39,22 @@ export class StartScene extends Phaser.Scene {
     const difficultyModal = this.createDifficultyModal(width, height);
     const compact = height < 700;
     const menuWidth = Math.min(250, width * .3);
-    const menuHeight = compact ? 46 : 58;
-    const menuGap = compact ? 8 : 10;
+    const menuHeight = compact ? 42 : 54;
+    const menuGap = compact ? 6 : 8;
     const menuX = 24 + menuWidth / 2;
-    const firstMenuY = compact ? Math.max(250, height * .45) : Math.max(350, height * .52);
+    const firstMenuY = compact ? Math.max(225, height * .41) : Math.max(350, height * .5);
     this.createMenuButton(menuX, firstMenuY, menuWidth, menuHeight, '▶', '게임 시작', 0xb8d56f, () => difficultyModal.setVisible(true));
     this.createMenuButton(menuX, firstMenuY + menuHeight + menuGap, menuWidth, menuHeight, '⚙', '설정', 0xe0c36b, () => settingsPanel.open());
     this.createMenuButton(menuX, firstMenuY + (menuHeight + menuGap) * 2, menuWidth, menuHeight, '▤', '도감', 0x87c9b0, () => this.scene.start('CodexScene'));
     this.createMenuButton(menuX, firstMenuY + (menuHeight + menuGap) * 3, menuWidth, menuHeight, '?', '튜토리얼', 0x9db7e0, () => this.scene.start('TutorialScene', { forced: false }));
+    this.createMenuButton(menuX, firstMenuY + (menuHeight + menuGap) * 4, menuWidth, menuHeight, '♛', '랭크', 0xd7b564, () => this.scene.start('RankScene'));
 
-    this.add.text(width / 2, height - 24, '유닛 생산 1·2·3·4  ·  전직 5·6  ·  카메라 A/D 또는 ←/→  ·  확대 Q/E 또는 휠', {
-      fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: `${Math.min(15, width / 67)}px`, color: '#f1ead2',
-      backgroundColor: '#0b1714cc', padding: { x: 14, y: 7 },
-    }).setOrigin(.5);
+    if (!compact) {
+      this.add.text(width / 2, height - 24, '유닛 생산 1·2·3·4  ·  전직 5·6  ·  카메라 A/D 또는 ←/→  ·  확대 Q/E 또는 휠', {
+        fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: `${Math.min(15, width / 67)}px`, color: '#f1ead2',
+        backgroundColor: '#0b1714cc', padding: { x: 14, y: 7 },
+      }).setOrigin(.5);
+    }
 
     this.input.keyboard?.on('keydown-ESC', () => { if (difficultyModal.visible) difficultyModal.setVisible(false); });
   }

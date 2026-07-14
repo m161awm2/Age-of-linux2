@@ -12,6 +12,7 @@
     "preview": "vite preview --host 0.0.0.0"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.110.5",
     "phaser": "^3.90.0"
   },
   "devDependencies": {
