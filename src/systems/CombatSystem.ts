@@ -68,7 +68,7 @@ export class CombatSystem {
     const now = this.scene.time.now;
     const distance = Math.abs(attacker.x - target.x);
     const dragoonMelee = attacker.definition.kind === 'dragoon' && distance <= 1.5 * TILE_SIZE;
-    let damage = dragoonMelee ? Math.floor(attacker.definition.damage * 1.5) : attacker.definition.damage;
+    let damage = dragoonMelee ? Math.floor(attacker.attackDamage * 1.5) : attacker.attackDamage;
 
     if (attacker.definition.kind === 'wingedHussar' || attacker.definition.kind === 'sanada') {
       damage = Math.round(damage * attacker.chargeMultiplier(now));
@@ -79,9 +79,8 @@ export class CombatSystem {
     if ((attacker.definition.kind === 'spearman' || attacker.definition.kind === 'halberd') && CAVALRY.has(target.definition.kind)) {
       damage = Math.floor(damage * 1.8);
     }
-    if (attacker.definition.kind === 'halberd' || attacker.definition.kind === 'fireArcher') {
-      damage += Math.floor(target.definition.hp * .12);
-    }
+    if (attacker.definition.kind === 'halberd') damage += Math.floor(target.definition.hp * .2);
+    else if (attacker.definition.kind === 'fireArcher') damage += Math.floor(target.definition.hp * .12);
     if (attacker.definition.kind === 'ronin' && attacker.firstStrike) {
       damage *= 2;
       attacker.firstStrike = false;
@@ -126,7 +125,7 @@ export class CombatSystem {
   }
 
   private applyBaseDamage(attacker: CombatUnit, base: BaseEntity): void {
-    let damage = attacker.definition.damage;
+    let damage = attacker.attackDamage;
     if (attacker.isBerserking) damage = Math.floor(damage * 2);
     base.takeDamage(damage);
     attacker.resetCharge(this.scene.time.now);

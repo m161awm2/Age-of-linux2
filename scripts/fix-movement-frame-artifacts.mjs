@@ -10,6 +10,11 @@ const corrections = {
   'paladin.png': [4],
   'crusader.png': [4],
   'spartan.png': [4, 7],
+  'knight.png': [4, 5, 6],
+  'winged-hussar.png': [4, 5, 6, 7],
+  'dragoon-ranged.png': [4, 6],
+  'dragoon-melee.png': [4, 5, 6],
+  'fenrir.png': [5, 6],
 };
 
 for (const [name, frames] of Object.entries(corrections)) {

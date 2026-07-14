@@ -76,6 +76,9 @@ export class CombatUnit extends Phaser.GameObjects.Container {
 
   get alive(): boolean { return this.hp > 0; }
   get isBerserking(): boolean { return this.definition.kind === 'viking' && this.berserkUntil > this.scene.time.now; }
+  get attackDamage(): number {
+    return this.definition.damage + (this.definition.kind === 'shieldGuard' && this.shieldHp === 0 ? 2 : 0);
+  }
 
   playState(state: UnitState): void {
     if (!this.alive || (this.attackLocked && state !== 'attack')) return;
@@ -167,6 +170,7 @@ export class CombatUnit extends Phaser.GameObjects.Container {
     const states = [
       this.isBerserking ? '광폭' : '',
       this.canParry(now) ? '패링' : '',
+      this.definition.kind === 'shieldGuard' && this.shieldHp === 0 ? '롱소드 +2' : '',
       chargeBonus > 0 ? `돌진 +${chargeBonus}%` : '',
     ].filter(Boolean);
     this.statusText.setText(states.join(' · '));
