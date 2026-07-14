@@ -319,9 +319,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   private groundScreenY(zoom = this.cameras.main.zoom): number {
-    // 최대 확대 위치는 유지하되, 축소할수록 지면을 HUD 위로 들어 올려 항상 보이게 한다.
+    // 지면의 깨진 하단이 보이지 않도록 여백을 두고, 축소할수록 HUD 위로 더 들어 올린다.
     const zoomOutRatio = Phaser.Math.Clamp((1.25 - zoom) / .6, 0, 1);
-    const bottomClearance = 112 + zoomOutRatio * 60;
+    const bottomClearance = 136 + zoomOutRatio * 60;
     return Math.max(320, this.scale.height - bottomClearance);
   }
 
