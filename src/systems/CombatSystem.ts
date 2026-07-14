@@ -149,8 +149,10 @@ export class CombatSystem {
   private prepareOpeningAttack(unit: CombatUnit, now: number, interval: number): void {
     if (unit.hasStartedCombat) return;
     unit.hasStartedCombat = true;
-    // 원작 규칙: 모든 기병은 초기 쿨다운 0초, 나머지는 공속의 20%만큼 최초 선딜을 가진다.
-    const opensImmediately = unit.definition.family === 'cavalry' || unit.definition.kind === 'sanada';
+    // 돌진 병종(기병·로닌·사나다)은 초기 쿨다운 0초, 나머지는 공속의 20%만큼 최초 선딜을 가진다.
+    const opensImmediately = unit.definition.family === 'cavalry'
+      || unit.definition.kind === 'ronin'
+      || unit.definition.kind === 'sanada';
     unit.nextAttackAt = opensImmediately ? now : now + interval * 200;
   }
 
