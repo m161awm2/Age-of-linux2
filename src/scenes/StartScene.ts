@@ -73,11 +73,9 @@ export class StartScene extends Phaser.Scene {
       fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: '19px', fontStyle: 'bold', color: '#fff6d7',
       stroke: '#0d1510', strokeThickness: 3,
     }).setOrigin(0, .5);
-    const button = this.add.container(x, y, [shadow, panel, iconText, labelText])
-      .setSize(width, height)
-      .setInteractive(new Phaser.Geom.Rectangle(-width / 2, -height / 2, width, height), Phaser.Geom.Rectangle.Contains);
-    button.input!.cursor = 'pointer';
-    button.on('pointerover', () => {
+    const hitArea = this.add.zone(0, 0, width, height).setInteractive({ useHandCursor: true });
+    const button = this.add.container(x, y, [shadow, panel, iconText, labelText, hitArea]);
+    hitArea.on('pointerover', () => {
       this.tweens.killTweensOf(button);
       this.tweens.add({ targets: button, x: x + 7, scaleX: 1.025, scaleY: 1.025, duration: 110, ease: 'Sine.Out' });
     }).on('pointerout', () => {
@@ -152,11 +150,9 @@ export class StartScene extends Phaser.Scene {
     const hint = this.add.text(0, 31, style.hint, {
       fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: '9px', color: '#fffbe6',
     }).setAlpha(.72).setOrigin(.5);
-    const button = this.add.container(x, y, [panel, symbol, title, detail, hint])
-      .setSize(width, 84)
-      .setInteractive(new Phaser.Geom.Rectangle(-width / 2, -42, width, 84), Phaser.Geom.Rectangle.Contains);
-    button.input!.cursor = 'pointer';
-    button.on('pointerover', () => button.setScale(1.045))
+    const hitArea = this.add.zone(0, 0, width, 84).setInteractive({ useHandCursor: true });
+    const button = this.add.container(x, y, [panel, symbol, title, detail, hint, hitArea]);
+    hitArea.on('pointerover', () => button.setScale(1.045))
       .on('pointerout', () => button.setScale(1))
       .on('pointerdown', () => button.setScale(1.01))
       .on('pointerup', () => this.scene.start('GameScene', { difficulty }));

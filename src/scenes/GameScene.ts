@@ -312,14 +312,17 @@ export class GameScene extends Phaser.Scene {
   private zoomCamera(amount: number): void {
     const camera = this.cameras.main;
     const centerX = camera.scrollX + camera.width / (2 * camera.zoom);
-    const minimumZoom = Math.max(.65, this.groundScreenY() / GROUND_Y);
+    const minimumZoom = Math.max(.65, this.groundScreenY(.65) / GROUND_Y);
     camera.setZoom(Phaser.Math.Clamp(camera.zoom + amount, minimumZoom, 1.25));
     camera.scrollX = centerX - camera.width / (2 * camera.zoom);
     this.alignCameraToGround();
   }
 
-  private groundScreenY(): number {
-    return Math.max(360, this.scale.height - 112);
+  private groundScreenY(zoom = this.cameras.main.zoom): number {
+    // 최대 확대 위치는 유지하되, 축소할수록 지면을 HUD 위로 들어 올려 항상 보이게 한다.
+    const zoomOutRatio = Phaser.Math.Clamp((1.25 - zoom) / .6, 0, 1);
+    const bottomClearance = 112 + zoomOutRatio * 60;
+    return Math.max(320, this.scale.height - bottomClearance);
   }
 
   private alignCameraToGround(): void {
