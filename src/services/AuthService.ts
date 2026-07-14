@@ -53,6 +53,6 @@ export class AuthService {
   private static toInternalEmail(loginId: string): string {
     const cleaned = loginId.trim().toLowerCase();
     if (!this.isValidLoginId(cleaned)) throw new Error('아이디는 영문, 숫자, _를 사용해 4~16자로 입력하세요.');
-    return `${cleaned}@users.ageoflinux2.com`;
+    return `${cleaned}@ksszogzpavdwhyvptfea.supabase.co`;
   }
 }
