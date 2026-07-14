@@ -1,9 +1,11 @@
 import type { Difficulty, DifficultyConfig, UnitKind } from './types';
 
 export const WORLD_WIDTH = 3600;
-export const WORLD_HEIGHT = 720;
-export const GROUND_Y = 585;
-export const GROUND_LAYER_OFFSET = 118;
+export const WORLD_HEIGHT = 2200;
+export const GROUND_Y = 2000;
+export const GROUND_TEXTURE_HEIGHT = 724;
+export const GROUND_TEXTURE_SURFACE_Y = 488;
+export const HILLS_TEXTURE_BOTTOM_Y = 723;
 export const PLAYER_BASE_X = 250;
 export const ENEMY_BASE_X = WORLD_WIDTH - 250;
 export const UNIT_SCALE = 0.34;

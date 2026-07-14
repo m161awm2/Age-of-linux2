@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import {
-  DIFFICULTIES, ENEMY_BASE_X, GROUND_LAYER_OFFSET, GROUND_Y, PLAYER_BASE_X, PROMOTION_COSTS, PROMOTION_OPTIONS,
-  SECOND_PROMOTIONS, SPECIAL_ELITE, SPECIAL_UNLOCK_COST, WORLD_HEIGHT, WORLD_WIDTH,
+  DIFFICULTIES, ENEMY_BASE_X, GROUND_TEXTURE_HEIGHT, GROUND_TEXTURE_SURFACE_Y, GROUND_Y,
+  HILLS_TEXTURE_BOTTOM_Y, PLAYER_BASE_X, PROMOTION_COSTS, PROMOTION_OPTIONS, SECOND_PROMOTIONS,
+  SPECIAL_ELITE, SPECIAL_UNLOCK_COST, WORLD_HEIGHT, WORLD_WIDTH,
 } from '../data/constants';
 import { UNITS } from '../data/units';
 import type { Difficulty, GameLaunchData, UnitKind } from '../data/types';
@@ -59,8 +60,8 @@ export class GameScene extends Phaser.Scene {
     this.ai = new AISystem(this.difficulty);
     this.combat = new CombatSystem(this);
     this.createBattlefield();
-    this.playerBase = new BaseEntity(this, 'player', PLAYER_BASE_X, GROUND_Y + 34, 100);
-    this.enemyBase = new BaseEntity(this, 'enemy', ENEMY_BASE_X, GROUND_Y + 34, difficultyConfig.enemyBaseHp);
+    this.playerBase = new BaseEntity(this, 'player', PLAYER_BASE_X, GROUND_Y + 2, 100);
+    this.enemyBase = new BaseEntity(this, 'enemy', ENEMY_BASE_X, GROUND_Y + 2, difficultyConfig.enemyBaseHp);
     this.createCamera();
     this.createHud();
     this.createInputs();
@@ -95,12 +96,15 @@ export class GameScene extends Phaser.Scene {
   private createBattlefield(): void {
     this.cameras.main.setBackgroundColor('#71b9ee');
     this.add.tileSprite(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, 'sky').setDisplaySize(WORLD_WIDTH, WORLD_HEIGHT).setDepth(0);
-    this.add.tileSprite(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, 'hills').setDisplaySize(WORLD_WIDTH, WORLD_HEIGHT).setDepth(1);
-    this.add.tileSprite(WORLD_WIDTH / 2, WORLD_HEIGHT / 2 + GROUND_LAYER_OFFSET, WORLD_WIDTH, WORLD_HEIGHT, 'ground').setDisplaySize(WORLD_WIDTH, WORLD_HEIGHT).setDepth(4);
-    const lane = this.add.rectangle(WORLD_WIDTH / 2, GROUND_Y + 25, WORLD_WIDTH, 4, 0xd1c17e, .32).setDepth(5);
+    const hillsY = GROUND_Y - HILLS_TEXTURE_BOTTOM_Y + GROUND_TEXTURE_HEIGHT / 2;
+    const groundY = GROUND_Y - GROUND_TEXTURE_SURFACE_Y + GROUND_TEXTURE_HEIGHT / 2;
+    this.add.tileSprite(WORLD_WIDTH / 2, hillsY, WORLD_WIDTH, GROUND_TEXTURE_HEIGHT, 'hills').setDepth(1);
+    this.add.rectangle(WORLD_WIDTH / 2, GROUND_Y + 180, WORLD_WIDTH, 400, 0x59432c).setDepth(3);
+    this.add.tileSprite(WORLD_WIDTH / 2, groundY, WORLD_WIDTH, GROUND_TEXTURE_HEIGHT, 'ground').setDepth(4);
+    const lane = this.add.rectangle(WORLD_WIDTH / 2, GROUND_Y + 8, WORLD_WIDTH, 3, 0xd1c17e, .24).setDepth(5);
     lane.setBlendMode(Phaser.BlendModes.ADD);
     for (let x = 620; x < WORLD_WIDTH - 600; x += 360) {
-      this.add.text(x, GROUND_Y + 30, '•', { fontSize: '26px', color: '#6d5a36' }).setAlpha(.28).setDepth(6);
+      this.add.text(x, GROUND_Y + 12, '•', { fontSize: '22px', color: '#6d5a36' }).setAlpha(.22).setDepth(6);
     }
   }
 
@@ -108,13 +112,14 @@ export class GameScene extends Phaser.Scene {
     const camera = this.cameras.main;
     camera.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
     camera.setZoom(.9);
-    camera.centerOn(620, WORLD_HEIGHT / 2);
+    camera.scrollX = Math.max(0, 620 - camera.width / (2 * camera.zoom));
+    this.alignCameraToGround();
     camera.setRoundPixels(true);
+    this.scale.on(Phaser.Scale.Events.RESIZE, this.alignCameraToGround, this);
     this.input.on('wheel', (_pointer: Phaser.Input.Pointer, _objects: unknown[], _dx: number, dy: number) => this.zoomCamera(dy < 0 ? .08 : -.08));
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
       if (!pointer.isDown) return;
       camera.scrollX -= (pointer.x - pointer.prevPosition.x) / camera.zoom;
-      camera.scrollY -= (pointer.y - pointer.prevPosition.y) / camera.zoom;
     });
   }
 
@@ -165,7 +170,7 @@ export class GameScene extends Phaser.Scene {
 
   private spawnUnit(kind: UnitKind, team: 'player' | 'enemy'): void {
     const x = team === 'player' ? PLAYER_BASE_X + 185 : ENEMY_BASE_X - 185;
-    const unit = new CombatUnit(this, UNITS[kind], team, x, GROUND_Y + 12);
+    const unit = new CombatUnit(this, UNITS[kind], team, x, GROUND_Y + 2);
     (team === 'player' ? this.playerUnits : this.enemyUnits).push(unit);
   }
 
@@ -301,7 +306,21 @@ export class GameScene extends Phaser.Scene {
   }
 
   private zoomCamera(amount: number): void {
-    this.cameras.main.setZoom(Phaser.Math.Clamp(this.cameras.main.zoom + amount, .65, 1.25));
+    const camera = this.cameras.main;
+    const centerX = camera.scrollX + camera.width / (2 * camera.zoom);
+    const minimumZoom = Math.max(.65, this.groundScreenY() / GROUND_Y);
+    camera.setZoom(Phaser.Math.Clamp(camera.zoom + amount, minimumZoom, 1.25));
+    camera.scrollX = centerX - camera.width / (2 * camera.zoom);
+    this.alignCameraToGround();
+  }
+
+  private groundScreenY(): number {
+    return Math.max(360, this.scale.height - 112);
+  }
+
+  private alignCameraToGround(): void {
+    const camera = this.cameras.main;
+    camera.scrollY = GROUND_Y - this.groundScreenY() / camera.zoom;
   }
 
   private finish(victory: boolean, elapsedSeconds: number): void {
@@ -317,5 +336,6 @@ export class GameScene extends Phaser.Scene {
     this.events.off('battle-message', this.onBattleMessage, this);
     this.combat?.destroy();
     this.hud?.destroy();
+    this.scale.off(Phaser.Scale.Events.RESIZE, this.alignCameraToGround, this);
   }
 }

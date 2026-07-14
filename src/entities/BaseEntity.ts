@@ -15,7 +15,9 @@ export class BaseEntity extends Phaser.GameObjects.Container {
     this.hp = hp;
 
     const texture = team === 'player' ? 'playerBase' : 'enemyBase';
-    const image = scene.add.image(0, 0, texture).setOrigin(.5, 1).setDisplaySize(390, 260);
+    // 원본 PNG의 투명 여백을 제외한 실제 건물 하단을 지면에 맞춘다.
+    const contentBottomOrigin = team === 'player' ? 793 / 1024 : 815 / 1024;
+    const image = scene.add.image(0, 0, texture).setOrigin(.5, contentBottomOrigin).setDisplaySize(390, 260);
     if (team === 'enemy') image.setFlipX(true);
     this.bar = scene.add.graphics();
     this.hpText = scene.add.text(0, -278, '', {
