@@ -19,6 +19,15 @@ export class StartScene extends Phaser.Scene {
       fontStyle: 'bold', color: '#f4e5a6', stroke: '#1d2116', strokeThickness: 5,
     }).setOrigin(.5);
 
+    const codexButton = this.add.text(width - 24, 24, '▤  병종 도감', {
+      fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: '15px', fontStyle: 'bold', color: '#f6edc8',
+      backgroundColor: '#1b3027ee', padding: { x: 16, y: 11 },
+    }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
+    codexButton.setStroke('#101712', 2)
+      .on('pointerover', () => codexButton.setScale(1.04).setColor('#ffffff'))
+      .on('pointerout', () => codexButton.setScale(1).setColor('#f6edc8'))
+      .on('pointerdown', () => this.scene.start('CodexScene'));
+
     const difficulties: Difficulty[] = ['Easy', 'Medium', 'Hard'];
     const buttonY = Math.min(height - 190, height * .66);
     const buttonWidth = Math.min(185, width * .21);

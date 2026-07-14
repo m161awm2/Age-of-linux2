@@ -1,0 +1,21 @@
+{
+  "soldier": { "description": "" },
+  "spearman": { "description": "" },
+  "halberd": { "description": "" },
+  "paladin": { "description": "" },
+  "crusader": { "description": "" },
+  "spartan": { "description": "" },
+  "shieldGuard": { "description": "" },
+  "archer": { "description": "" },
+  "musketeer": { "description": "" },
+  "javelin": { "description": "" },
+  "fireArcher": { "description": "" },
+  "knight": { "description": "" },
+  "chariot": { "description": "" },
+  "wingedHussar": { "description": "" },
+  "dragoon": { "description": "" },
+  "fenrir": { "description": "" },
+  "ronin": { "description": "" },
+  "viking": { "description": "" },
+  "sanada": { "description": "" }
+}
