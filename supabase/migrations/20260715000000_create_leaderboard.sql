@@ -13,7 +13,7 @@ create index if not exists ranked_runs_user_started_idx
 
 create table if not exists public.leaderboard_scores (
   user_id uuid not null references auth.users(id) on delete cascade,
-  nickname text not null check (char_length(nickname) between 2 and 12),
+  nickname text not null check (char_length(nickname) between 2 and 16),
   difficulty text not null check (difficulty in ('Easy', 'Medium', 'Hard')),
   game_version text not null,
   best_time_ms integer not null check (best_time_ms > 0),
@@ -29,6 +29,10 @@ alter table public.ranked_runs enable row level security;
 alter table public.leaderboard_scores enable row level security;
 alter table public.leaderboard_scores
   add column if not exists unit_composition jsonb not null default '{}'::jsonb;
+alter table public.leaderboard_scores
+  drop constraint if exists leaderboard_scores_nickname_check;
+alter table public.leaderboard_scores
+  add constraint leaderboard_scores_nickname_check check (char_length(nickname) between 2 and 16);
 
 revoke all on public.ranked_runs from anon, authenticated;
 revoke all on public.leaderboard_scores from anon, authenticated;
@@ -80,7 +84,7 @@ begin
   if v_user_id is null then raise exception '로그인이 필요합니다.'; end if;
   if coalesce((auth.jwt()->>'is_anonymous')::boolean, false) then raise exception '정식 로그인이 필요합니다.'; end if;
   p_nickname := btrim(p_nickname);
-  if p_nickname !~ '^[가-힣A-Za-z0-9 _-]{2,12}$' then raise exception '닉네임 형식이 올바르지 않습니다.'; end if;
+  if p_nickname !~ '^[가-힣A-Za-z0-9 _-]{2,16}$' then raise exception '닉네임 형식이 올바르지 않습니다.'; end if;
   if jsonb_typeof(p_unit_composition) <> 'object' then raise exception '병종 조합 형식이 올바르지 않습니다.'; end if;
   if (select count(*) from jsonb_each(p_unit_composition)) > 20 then raise exception '병종 조합이 너무 큽니다.'; end if;
   for v_unit in select key, value from jsonb_each_text(p_unit_composition) loop
@@ -176,7 +180,7 @@ begin
   if v_user_id is null then raise exception '로그인이 필요합니다.'; end if;
   if coalesce((auth.jwt()->>'is_anonymous')::boolean, false) then raise exception '정식 로그인이 필요합니다.'; end if;
   p_nickname := btrim(p_nickname);
-  if p_nickname !~ '^[가-힣A-Za-z0-9 _-]{2,12}$' then raise exception '닉네임 형식이 올바르지 않습니다.'; end if;
+  if p_nickname !~ '^[가-힣A-Za-z0-9 _-]{2,16}$' then raise exception '닉네임 형식이 올바르지 않습니다.'; end if;
 
   update public.leaderboard_scores
   set nickname = p_nickname

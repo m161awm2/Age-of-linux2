@@ -13,6 +13,12 @@ export class AuthService {
     return data.session.user;
   }
 
+  static async getLoginId(): Promise<string | null> {
+    const user = await this.getSessionUser();
+    const loginId = user?.user_metadata?.login_id;
+    return typeof loginId === 'string' && this.isValidLoginId(loginId) ? loginId : null;
+  }
+
   static async getUser(): Promise<User | null> {
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) return null;

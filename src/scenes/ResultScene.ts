@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { DIFFICULTIES } from '../data/constants';
 import type { GameResultData } from '../data/types';
 import { RankService } from '../services/RankService';
+import { AuthService } from '../services/AuthService';
 
 export class ResultScene extends Phaser.Scene {
   private result!: GameResultData;
@@ -39,19 +40,13 @@ export class ResultScene extends Phaser.Scene {
       return;
     }
 
-    const savedNickname = RankService.getNickname();
-    if (savedNickname) {
-      status.setText(`${savedNickname} 이름으로 기록을 등록하는 중…`);
-      void this.submitRank(savedNickname, status);
-      return;
-    }
-
-    const registrationButton = this.createButton(x, y, '랭킹 기록 등록', () => {
-      const nickname = RankService.promptForNickname();
-      if (nickname) {
-        registrationButton.forEach((object) => object.destroy());
-        void this.submitRank(nickname, status);
-      }
+    status.setText('로그인 아이디로 랭킹 기록을 자동 등록하는 중…');
+    void AuthService.getLoginId().then((loginId) => {
+      if (!loginId) throw new Error('로그인 아이디를 확인할 수 없습니다.');
+      return this.submitRank(loginId, status);
+    }).catch((error) => {
+      console.warn('자동 랭킹 등록 실패', error);
+      status.setText('랭킹 자동 등록에 실패했습니다.').setColor('#ffb09c');
     });
   }
 
