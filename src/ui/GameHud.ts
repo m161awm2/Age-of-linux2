@@ -1,4 +1,5 @@
 import type { Difficulty, UnitDefinition } from '../data/types';
+import { UNIT_SHEETS } from '../assets/manifest';
 
 export type ProductionSlot = 'infantry' | 'archer' | 'cavalry' | 'special';
 export type PromotionMode = 'normal' | 'special';
@@ -89,7 +90,10 @@ export class GameHud {
       button.className = 'unit-button';
       button.dataset.slot = slot;
       button.addEventListener('click', () => this.callbacks.onSpawn(slot));
-      button.innerHTML = `<span class="unit-key">${index + 1}</span><span class="unit-name">-</span><span class="unit-cost">-</span>`;
+      button.innerHTML = `
+        <span class="unit-portrait" aria-hidden="true"><img alt=""></span>
+        <span class="unit-key">${index + 1}</span>
+        <span class="unit-details"><span class="unit-name">-</span><span class="unit-cost">-</span></span>`;
       panel.appendChild(button);
       this.productionButtons.set(slot, button);
     });
@@ -109,11 +113,24 @@ export class GameHud {
       const button = this.productionButtons.get(slot)!;
       const name = button.querySelector('.unit-name')!;
       const cost = button.querySelector('.unit-cost')!;
+      const portrait = button.querySelector<HTMLSpanElement>('.unit-portrait')!;
+      const portraitImage = portrait.querySelector<HTMLImageElement>('img')!;
       if (!definition) {
         name.textContent = slot === 'special' ? '스페셜 미해금' : '-';
         cost.textContent = slot === 'special' ? '전직 필요' : '';
+        portrait.classList.remove('visible');
+        portraitImage.removeAttribute('src');
+        delete button.dataset.texture;
         button.disabled = true;
       } else {
+        if (button.dataset.texture !== definition.texture) {
+          const asset = UNIT_SHEETS.find(({ key }) => key === definition.texture);
+          if (asset) {
+            portraitImage.src = `${import.meta.env.BASE_URL}${asset.file}`;
+            portrait.classList.add('visible');
+            button.dataset.texture = definition.texture;
+          }
+        }
         name.textContent = definition.name;
         const cooldown = slot === 'special' && state.specialCooldown > 0 ? ` · ${Math.ceil(state.specialCooldown)}초` : '';
         cost.textContent = `${definition.cost}G${cooldown}`;

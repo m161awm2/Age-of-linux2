@@ -60,8 +60,13 @@ kbd {
 }
 .unit-button:hover:not(:disabled), .hud-action:hover { transform: translateY(-2px); border-color: #b6cf76; filter: brightness(1.12); }
 .unit-button:disabled { cursor: not-allowed; filter: grayscale(.55) brightness(.65); }
-.unit-key { position: absolute; top: 7px; left: 8px; width: 21px; height: 21px; display: grid; place-items: center; border-radius: 5px; background: #0d1712; color: #e4cc73; font: 800 12px monospace; }
-.unit-name { display: block; margin: 1px 4px 2px 24px; font-weight: 800; font-size: 14px; white-space: nowrap; }
+.unit-button { display: grid; grid-template-columns: 58px minmax(0, 1fr); align-items: center; gap: 5px; padding: 3px 7px 3px 3px; overflow: hidden; }
+.unit-portrait { position: relative; display: none; width: 58px; height: 58px; overflow: hidden; align-self: end; pointer-events: none; }
+.unit-portrait.visible { display: block; }
+.unit-portrait img { position: absolute; top: 0; left: 0; width: 232px; height: 174px; max-width: none; object-fit: fill; }
+.unit-key { position: absolute; z-index: 2; top: 5px; left: 5px; width: 21px; height: 21px; display: grid; place-items: center; border-radius: 5px; background: rgba(13, 23, 18, .9); color: #e4cc73; font: 800 12px monospace; box-shadow: 0 1px 4px rgba(0, 0, 0, .45); }
+.unit-details { min-width: 0; }
+.unit-name { display: block; margin: 1px 0 3px; overflow: hidden; font-weight: 800; font-size: 14px; white-space: nowrap; text-overflow: ellipsis; }
 .unit-cost { display: block; color: #d8c986; font-size: 12px; }
 .promotion-buttons { display: grid; grid-template-columns: repeat(2, 94px); gap: 8px; pointer-events: auto; }
 .hud-action { padding: 7px; font-size: 14px; font-weight: 800; }
@@ -107,6 +112,9 @@ kbd {
   .hud-top { min-height: 52px; padding-block: 5px; }
   .hud-bottom { padding-block: 6px; }
   .unit-button, .hud-action { min-height: 50px; }
+  .unit-portrait { width: 48px; height: 48px; }
+  .unit-portrait img { width: 192px; height: 144px; }
+  .unit-button { grid-template-columns: 48px minmax(0, 1fr); }
   .camera-controls { top: 62px; }
   .hud-toast { top: 60px; }
 }
