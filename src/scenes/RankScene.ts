@@ -75,14 +75,14 @@ export class RankScene extends Phaser.Scene {
     this.clearContent();
     const { width, height } = this.scale;
     const compact = height < 620;
-    const rowsPerPage = compact ? 7 : 10;
-    const totalPages = Math.max(1, Math.ceil(this.entries.length / rowsPerPage));
-    this.page = Phaser.Math.Clamp(this.page, 0, totalPages - 1);
-    const visible = this.entries.slice(this.page * rowsPerPage, (this.page + 1) * rowsPerPage);
     const tableWidth = Math.min(760, width - 100);
     const left = width / 2 - tableWidth / 2;
     const top = compact ? 126 : 132;
-    const rowHeight = compact ? 35 : 40;
+    const rowHeight = compact ? 52 : 58;
+    const rowsPerPage = Phaser.Math.Clamp(Math.floor((height - top - 72) / rowHeight), 4, 8);
+    const totalPages = Math.max(1, Math.ceil(this.entries.length / rowsPerPage));
+    this.page = Phaser.Math.Clamp(this.page, 0, totalPages - 1);
+    const visible = this.entries.slice(this.page * rowsPerPage, (this.page + 1) * rowsPerPage);
     const header = this.add.rectangle(width / 2, top, tableWidth, 32, 0x263b30).setStrokeStyle(1, 0x7b8766);
     this.contentObjects.push(header);
     this.addTableText(left + 38, top, '순위', 12, '#dcd397');
@@ -151,12 +151,12 @@ export class RankScene extends Phaser.Scene {
       return;
     }
     const visible = units.slice(0, 4);
-    const gap = compact ? 36 : 42;
+    const gap = compact ? 48 : 55;
     visible.forEach((kind, index) => {
       const unit = UNITS[kind as keyof typeof UNITS];
       if (!unit) return;
       const spriteX = x + (index - (visible.length - 1) / 2) * gap;
-      const sprite = this.add.sprite(spriteX, y, unit.texture, 0).setDisplaySize(compact ? 29 : 33, compact ? 29 : 33);
+      const sprite = this.add.sprite(spriteX, y, unit.texture, 0).setDisplaySize(compact ? 46 : 52, compact ? 46 : 52);
       sprite.play(`${unit.texture}-idle`);
       this.contentObjects.push(sprite);
     });
