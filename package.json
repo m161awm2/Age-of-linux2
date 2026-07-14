@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
+    "assets:transparency": "node scripts/remove-baked-backgrounds.mjs",
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 0.0.0.0"
@@ -12,6 +13,7 @@
     "phaser": "^3.90.0"
   },
   "devDependencies": {
+    "sharp": "^0.35.3",
     "typescript": "^5.9.3",
     "vite": "^7.2.4"
   }

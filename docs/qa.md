@@ -6,6 +6,7 @@
 - `npm run build`: TypeScript strict 검사 및 Vite 프로덕션 빌드 성공.
 - 결과물: `dist/index.html`, 상대 경로 `./assets/...` 확인, 55MB.
 - 에셋: `public/assets` 28개 전부 0바이트가 아니며 `dist`에 28개 모두 복사됨. JS/CSS 포함 `dist/assets` 30개.
+- 투명 배경: 하늘을 제외한 27개 PNG의 알파 채널, 투명 모서리와 어두운 배경 합성 결과를 확인. 로고·유닛·기지·원경·지면의 흰 체크무늬가 제거됨.
 - 개발 서버: `http://localhost:5173/` HTTP 200 및 한국어 HTML 응답 확인.
 - 직접 화면 자동화: 현재 세션의 인앱 브라우저 목록이 비어 있어 클릭·스크린샷 기반 검증은 수행하지 못했다. 별도 브라우저 도구로 우회하지 않았다.
 - 최종 정적 검사: `TODO`, `FIXME`, 하드코딩된 localhost 및 루트 `/assets/` 경로 없음.
