@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import { DIFFICULTIES } from '../data/constants';
 import type { Difficulty } from '../data/types';
+import { AudioService } from '../services/AudioService';
+import { SettingsPanel } from '../ui/SettingsPanel';
 
 export class StartScene extends Phaser.Scene {
   constructor() { super('StartScene'); }
@@ -8,6 +10,9 @@ export class StartScene extends Phaser.Scene {
   create(): void {
     const width = this.scale.width;
     const height = this.scale.height;
+    const settingsPanel = new SettingsPanel();
+    AudioService.prepare(this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => settingsPanel.destroy());
     this.add.image(width / 2, height / 2, 'sky').setDisplaySize(width, height);
     this.add.image(width / 2, height, 'hills').setOrigin(.5, 1).setDisplaySize(width, height);
     this.add.image(width / 2, height, 'ground').setOrigin(.5, 1).setDisplaySize(width, height);
@@ -27,6 +32,15 @@ export class StartScene extends Phaser.Scene {
       .on('pointerover', () => codexButton.setScale(1.04).setColor('#ffffff'))
       .on('pointerout', () => codexButton.setScale(1).setColor('#f6edc8'))
       .on('pointerdown', () => this.scene.start('CodexScene'));
+
+    const settingsButton = this.add.text(width - 24, 76, '⚙  설정', {
+      fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#e9e4ca',
+      backgroundColor: '#1b3027ee', padding: { x: 16, y: 10 },
+    }).setOrigin(1, 0).setInteractive({ useHandCursor: true });
+    settingsButton.setStroke('#101712', 2)
+      .on('pointerover', () => settingsButton.setScale(1.04).setColor('#ffffff'))
+      .on('pointerout', () => settingsButton.setScale(1).setColor('#e9e4ca'))
+      .on('pointerdown', () => settingsPanel.open());
 
     const difficulties: Difficulty[] = ['Easy', 'Medium', 'Hard'];
     const buttonY = Math.min(height - 190, height * .66);

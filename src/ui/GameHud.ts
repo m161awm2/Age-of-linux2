@@ -31,6 +31,7 @@ interface HudCallbacks {
   onPromotion: (id: string) => void;
   onClosePromotion: () => void;
   onCamera: (direction: 'left' | 'right' | 'in' | 'out') => void;
+  onOpenSettings: () => void;
 }
 
 export class GameHud {
@@ -59,6 +60,7 @@ export class GameHud {
       <aside class="camera-controls" aria-label="카메라 조작">
         <button data-camera="left" title="왼쪽 이동">◀</button><button data-camera="right" title="오른쪽 이동">▶</button>
         <button data-camera="in" title="확대">＋</button><button data-camera="out" title="축소">−</button>
+        <button class="settings-button" data-ref="settings" title="설정 열기">⚙ 설정</button>
       </aside>
       <footer class="hud-bottom">
         <div class="production-panel" data-ref="production"></div>
@@ -99,6 +101,7 @@ export class GameHud {
     });
     this.root.querySelectorAll<HTMLElement>('[data-promotion-mode]').forEach((button) => button.addEventListener('click', () => this.callbacks.onOpenPromotion(button.dataset.promotionMode as PromotionMode)));
     this.root.querySelectorAll<HTMLElement>('[data-camera]').forEach((button) => button.addEventListener('click', () => this.callbacks.onCamera(button.dataset.camera as 'left' | 'right' | 'in' | 'out')));
+    this.get('[data-ref="settings"]').addEventListener('click', () => this.callbacks.onOpenSettings());
     this.get('[data-ref="close"]').addEventListener('click', () => this.callbacks.onClosePromotion());
     this.modal.addEventListener('pointerdown', (event) => { if (event.target === this.modal) this.callbacks.onClosePromotion(); });
   }

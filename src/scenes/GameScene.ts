@@ -14,6 +14,7 @@ import { CombatSystem } from '../systems/CombatSystem';
 import { EconomySystem } from '../systems/EconomySystem';
 import { MovementSystem } from '../systems/MovementSystem';
 import { GameHud, type HudState, type ProductionSlot, type PromotionMode, type PromotionOption } from '../ui/GameHud';
+import { SettingsPanel } from '../ui/SettingsPanel';
 
 export class GameScene extends Phaser.Scene {
   private difficulty: Difficulty = 'Hard';
@@ -27,6 +28,7 @@ export class GameScene extends Phaser.Scene {
   private playerUnits: CombatUnit[] = [];
   private enemyUnits: CombatUnit[] = [];
   private hud!: GameHud;
+  private settingsPanel!: SettingsPanel;
   private startedAt = 0;
   private finished = false;
   private lastEnemySupplyHp = 0;
@@ -124,12 +126,14 @@ export class GameScene extends Phaser.Scene {
   }
 
   private createHud(): void {
+    this.settingsPanel = new SettingsPanel();
     this.hud = new GameHud({
       onSpawn: (slot) => this.spawnFromSlot(slot),
       onOpenPromotion: (mode) => this.openPromotion(mode),
       onPromotion: (id) => this.applyPromotion(id),
       onClosePromotion: () => this.closePromotion(),
       onCamera: (direction) => this.cameraAction(direction),
+      onOpenSettings: () => this.settingsPanel.open(),
     });
     this.updateHud(0);
   }
@@ -336,6 +340,7 @@ export class GameScene extends Phaser.Scene {
     this.events.off('battle-message', this.onBattleMessage, this);
     this.combat?.destroy();
     this.hud?.destroy();
+    this.settingsPanel?.destroy();
     this.scale.off(Phaser.Scale.Events.RESIZE, this.alignCameraToGround, this);
   }
 }
