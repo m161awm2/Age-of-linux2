@@ -113,6 +113,27 @@ kbd {
 .volume-setting input { width: 100%; accent-color: #aaca65; cursor: pointer; }
 .volume-setting small { display: block; margin-top: 10px; color: #8f9b91; font-size: 11px; }
 
+.auth-screen { position: fixed; inset: 0; z-index: 9000; display: grid; place-items: center; padding: 24px; background: rgba(3, 9, 7, .48); backdrop-filter: blur(5px); }
+.auth-card { width: min(430px, 88vw); padding: 34px; border: 1px solid #ad9b60; border-radius: 20px; background: linear-gradient(145deg, rgba(28, 48, 38, .98), rgba(10, 19, 15, .99)); box-shadow: 0 28px 90px rgba(0, 0, 0, .68), inset 0 1px rgba(255, 255, 255, .08); }
+.auth-kicker { margin: 0 0 7px; color: #91a772; font: 800 10px/1 monospace; letter-spacing: .16em; }
+.auth-card h1 { margin: 0; color: #eff2bd; font: 900 31px/1.1 Georgia, Pretendard, serif; }
+.auth-description { margin: 10px 0 22px; color: #acb7aa; font-size: 13px; }
+.auth-tabs { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 20px; padding: 4px; border: 1px solid rgba(169, 153, 95, .3); border-radius: 10px; background: rgba(3, 10, 7, .42); }
+.auth-tabs button { height: 38px; border: 0; border-radius: 7px; color: #9fa99f; background: transparent; font-weight: 800; cursor: pointer; }
+.auth-tabs button.active { color: #fff2bd; background: #314c3b; box-shadow: inset 0 0 0 1px rgba(197, 215, 132, .35); }
+.auth-form { display: grid; gap: 14px; }
+.auth-form label { display: grid; gap: 7px; }
+.auth-form label span { color: #ded8ba; font-size: 13px; font-weight: 800; }
+.auth-form input { width: 100%; height: 46px; padding: 0 13px; border: 1px solid #536a57; border-radius: 9px; outline: none; color: #f6f1da; background: #0c1813; font-size: 15px; }
+.auth-form input:focus { border-color: #bad174; box-shadow: 0 0 0 3px rgba(170, 200, 102, .12); }
+.auth-form input:disabled { opacity: .6; }
+.auth-status { min-height: 19px; margin: 0; color: #cbdc9c; font-size: 12px; line-height: 1.45; }
+.auth-status.error { color: #ff9e8d; }
+.auth-submit { height: 49px; border: 1px solid #c4d77b; border-radius: 10px; color: #fff7d5; background: linear-gradient(180deg, #527039, #344c2b); font-weight: 900; cursor: pointer; }
+.auth-submit:hover:not(:disabled) { filter: brightness(1.12); transform: translateY(-1px); }
+.auth-submit:disabled { opacity: .62; cursor: wait; }
+.auth-card > small { display: block; margin-top: 17px; color: #7f8c83; font-size: 10px; text-align: center; }
+
 @media (max-width: 980px) {
   .hud-top { grid-template-columns: 150px 105px 1fr 65px; padding-inline: 10px; }
   .hud-brand { font-size: 14px; }

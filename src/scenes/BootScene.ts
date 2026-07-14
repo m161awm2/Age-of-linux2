@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { IMAGE_ASSETS, UNIT_SHEETS } from '../assets/manifest';
+import { AuthService } from '../services/AuthService';
 
 export class BootScene extends Phaser.Scene {
   constructor() { super('BootScene'); }
@@ -38,6 +39,8 @@ export class BootScene extends Phaser.Scene {
     const loadingScreen = document.getElementById('loading-screen');
     loadingScreen?.classList.add('loading-complete');
     window.setTimeout(() => loadingScreen?.remove(), 450);
-    this.scene.start('StartScene');
+    void AuthService.getUser()
+      .then((user) => this.scene.start(user ? 'StartScene' : 'AuthScene'))
+      .catch(() => this.scene.start('AuthScene'));
   }
 }

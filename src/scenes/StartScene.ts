@@ -4,6 +4,7 @@ import type { Difficulty } from '../data/types';
 import { AudioService } from '../services/AudioService';
 import { SettingsPanel } from '../ui/SettingsPanel';
 import { TutorialProgressService } from '../services/TutorialProgressService';
+import { AuthService } from '../services/AuthService';
 
 const DIFFICULTY_STYLES: Record<Difficulty, { top: number; bottom: number; border: number; glow: number; symbol: string; hint: string }> = {
   Easy: { top: 0x39895b, bottom: 0x17452e, border: 0x8be2aa, glow: 0x69d894, symbol: '◆', hint: '여유로운 전투' },
@@ -28,6 +29,7 @@ export class StartScene extends Phaser.Scene {
     this.add.image(width / 2, height, 'hills').setOrigin(.5, 1).setDisplaySize(width, height);
     this.add.image(width / 2, height, 'ground').setOrigin(.5, 1).setDisplaySize(width, height);
     this.add.rectangle(width / 2, height / 2, width, height, 0x07120e, .42);
+    this.createLogoutButton(width - 70, 36);
 
     const logo = this.add.image(width / 2, Math.max(130, height * .23), 'logo')
       .setDisplaySize(Math.min(760, width * .75), Math.min(254, width * .25));
@@ -57,6 +59,21 @@ export class StartScene extends Phaser.Scene {
     }
 
     this.input.keyboard?.on('keydown-ESC', () => { if (difficultyModal.visible) difficultyModal.setVisible(false); });
+  }
+
+  private createLogoutButton(x: number, y: number): void {
+    const background = this.add.rectangle(x, y, 112, 34, 0x17271f, .94)
+      .setStrokeStyle(1, 0x887c59).setInteractive({ useHandCursor: true });
+    const label = this.add.text(x, y, '로그아웃', {
+      fontFamily: 'Pretendard, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#e9dfbc',
+    }).setOrigin(.5);
+    background.on('pointerover', () => background.setFillStyle(0x2b4335))
+      .on('pointerout', () => background.setFillStyle(0x17271f))
+      .on('pointerdown', () => {
+        background.disableInteractive();
+        label.setText('처리 중…');
+        void AuthService.signOut().finally(() => this.scene.start('AuthScene'));
+      });
   }
 
   private createMenuButton(

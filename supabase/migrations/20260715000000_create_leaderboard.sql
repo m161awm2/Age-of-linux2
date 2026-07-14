@@ -46,6 +46,7 @@ declare
   v_run_id uuid;
 begin
   if v_user_id is null then raise exception '로그인이 필요합니다.'; end if;
+  if coalesce((auth.jwt()->>'is_anonymous')::boolean, false) then raise exception '정식 로그인이 필요합니다.'; end if;
   if p_difficulty not in ('Easy', 'Medium', 'Hard') then raise exception '잘못된 난이도입니다.'; end if;
   if char_length(p_game_version) not between 1 and 32 then raise exception '잘못된 게임 버전입니다.'; end if;
 
@@ -77,6 +78,7 @@ declare
   v_unit record;
 begin
   if v_user_id is null then raise exception '로그인이 필요합니다.'; end if;
+  if coalesce((auth.jwt()->>'is_anonymous')::boolean, false) then raise exception '정식 로그인이 필요합니다.'; end if;
   p_nickname := btrim(p_nickname);
   if p_nickname !~ '^[가-힣A-Za-z0-9 _-]{2,12}$' then raise exception '닉네임 형식이 올바르지 않습니다.'; end if;
   if jsonb_typeof(p_unit_composition) <> 'object' then raise exception '병종 조합 형식이 올바르지 않습니다.'; end if;
@@ -154,6 +156,7 @@ as $$
   from public.leaderboard_scores as scores
   where scores.difficulty = p_difficulty
     and scores.game_version = p_game_version
+    and not coalesce((auth.jwt()->>'is_anonymous')::boolean, false)
   order by scores.best_time_ms, scores.achieved_at
   limit least(greatest(p_limit, 1), 100);
 $$;
@@ -171,6 +174,7 @@ declare
   v_changed integer;
 begin
   if v_user_id is null then raise exception '로그인이 필요합니다.'; end if;
+  if coalesce((auth.jwt()->>'is_anonymous')::boolean, false) then raise exception '정식 로그인이 필요합니다.'; end if;
   p_nickname := btrim(p_nickname);
   if p_nickname !~ '^[가-힣A-Za-z0-9 _-]{2,12}$' then raise exception '닉네임 형식이 올바르지 않습니다.'; end if;
 

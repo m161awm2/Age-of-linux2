@@ -1,8 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
 import type { Difficulty } from '../data/types';
+import { AuthService } from './AuthService';
+import { supabase } from './SupabaseClient';
 
-const SUPABASE_URL = 'https://ksszogzpavdwhyvptfea.supabase.co';
-const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_M7GevbrpxxPJYHKGk5ek0A_2eLII7HY';
 const NICKNAME_KEY = 'age-of-linux2-rank-nickname';
 
 export const RANKING_VERSION = '2026-07-15';
@@ -20,10 +19,6 @@ export interface FinishRankResult {
   duration_ms: number;
   personal_best: boolean;
 }
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
-});
 
 export class RankService {
   private static authPromise: Promise<string> | null = null;
@@ -113,13 +108,9 @@ export class RankService {
   private static async ensureAuthenticated(): Promise<string> {
     if (!this.authPromise) {
       this.authPromise = (async () => {
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError) throw sessionError;
-        if (sessionData.session?.user.id) return sessionData.session.user.id;
-        const { data, error } = await supabase.auth.signInAnonymously();
-        if (error) throw error;
-        if (!data.user?.id) throw new Error('익명 사용자 ID를 만들지 못했습니다.');
-        return data.user.id;
+        const user = await AuthService.getUser();
+        if (!user) throw new Error('로그인이 필요합니다.');
+        return user.id;
       })().catch((error) => {
         this.authPromise = null;
         throw error;
