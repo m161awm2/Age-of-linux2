@@ -7,7 +7,7 @@ const NICKNAME_KEY = 'age-of-linux2-rank-nickname';
 export const RANKING_VERSION = '2026-07-15';
 
 export interface LeaderboardEntry {
-  position: number;
+  rank_position: number;
   nickname: string;
   best_time_ms: number;
   is_me: boolean;
@@ -87,7 +87,7 @@ export class RankService {
     if (error) throw error;
     return (data ?? []).map((entry: LeaderboardEntry) => ({
       ...entry,
-      position: Number(entry.position),
+      rank_position: Number(entry.rank_position),
       unit_composition: entry.unit_composition ?? {},
     }));
   }

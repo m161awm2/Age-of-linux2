@@ -101,7 +101,7 @@ export class RankScene extends Phaser.Scene {
       const y = top + 32 + rowHeight * index + rowHeight / 2;
       const bg = this.add.rectangle(width / 2, y, tableWidth, rowHeight - 2, entry.is_me ? 0x42512a : index % 2 ? 0x102018 : 0x15261d, .96);
       this.contentObjects.push(bg);
-      const medal = entry.position === 1 ? '🥇' : entry.position === 2 ? '🥈' : entry.position === 3 ? '🥉' : `${entry.position}`;
+      const medal = entry.rank_position === 1 ? '🥇' : entry.rank_position === 2 ? '🥈' : entry.rank_position === 3 ? '🥉' : `${entry.rank_position}`;
       this.addTableText(left + 38, y, medal, 14, entry.is_me ? '#eff59a' : '#ede4c7');
       this.addTableText(left + tableWidth * .25, y, `${entry.nickname}${entry.is_me ? '  (나)' : ''}`, 14, entry.is_me ? '#eff59a' : '#f3eedb');
       this.addTableText(left + tableWidth * .59, y, this.formatComposition(entry.unit_composition), compact ? 11 : 12, '#d6d9c2');

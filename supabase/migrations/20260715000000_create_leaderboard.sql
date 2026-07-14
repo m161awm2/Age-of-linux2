@@ -136,7 +136,7 @@ create or replace function public.get_leaderboard(
   p_game_version text,
   p_limit integer default 100
 ) returns table (
-  position bigint,
+  rank_position bigint,
   nickname text,
   best_time_ms integer,
   is_me boolean,
@@ -148,7 +148,7 @@ set search_path = ''
 stable
 as $$
   select
-    row_number() over (order by scores.best_time_ms, scores.achieved_at) as position,
+    row_number() over (order by scores.best_time_ms, scores.achieved_at) as rank_position,
     scores.nickname,
     scores.best_time_ms,
     scores.user_id = auth.uid() as is_me,
