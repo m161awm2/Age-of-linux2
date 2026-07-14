@@ -1,13 +1,15 @@
 import Phaser from 'phaser';
 
 const VOLUME_KEY = 'age-of-linux2-bgm-volume';
-const DEFAULT_VOLUME = .45;
+const DEFAULT_VOLUME = .5;
 type AdjustableSound = Phaser.Sound.BaseSound & { setVolume(value: number): Phaser.Sound.BaseSound };
 
 export class AudioService {
   private static bgm?: AdjustableSound;
 
   static prepare(scene: Phaser.Scene): void {
+    // 화면 전환이나 브라우저 탭 포커스 해제 시에도 BGM을 계속 재생한다.
+    scene.sound.pauseOnBlur = false;
     if (!this.bgm) {
       this.bgm = scene.sound.add('bgm', { loop: true, volume: this.getVolume() }) as AdjustableSound;
     }
