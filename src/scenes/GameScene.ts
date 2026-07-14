@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import {
-  DIFFICULTIES, ENEMY_BASE_X, GROUND_Y, PLAYER_BASE_X, PROMOTION_COSTS, PROMOTION_OPTIONS,
+  DIFFICULTIES, ENEMY_BASE_X, GROUND_LAYER_OFFSET, GROUND_Y, PLAYER_BASE_X, PROMOTION_COSTS, PROMOTION_OPTIONS,
   SECOND_PROMOTIONS, SPECIAL_ELITE, SPECIAL_UNLOCK_COST, WORLD_HEIGHT, WORLD_WIDTH,
 } from '../data/constants';
 import { UNITS } from '../data/units';
@@ -80,8 +80,8 @@ export class GameScene extends Phaser.Scene {
     this.ai.update(dt, elapsed, (kind) => this.spawnUnit(kind, 'enemy'));
     this.updateCamera(dt);
 
-    this.movement.update(this.playerUnits, this.enemyUnits, dt, now, (unit, enemies) => this.combat.hasTargetInRange(unit, enemies));
-    this.movement.update(this.enemyUnits, this.playerUnits, dt, now, (unit, enemies) => this.combat.hasTargetInRange(unit, enemies));
+    this.movement.update(this.playerUnits, this.enemyUnits, dt, now);
+    this.movement.update(this.enemyUnits, this.playerUnits, dt, now);
     this.combat.update(this.playerUnits, this.enemyUnits, this.enemyBase, now);
     this.combat.update(this.enemyUnits, this.playerUnits, this.playerBase, now);
     this.payBountiesAndRemoveDead();
@@ -96,7 +96,7 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor('#71b9ee');
     this.add.tileSprite(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, 'sky').setDisplaySize(WORLD_WIDTH, WORLD_HEIGHT).setDepth(0);
     this.add.tileSprite(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, 'hills').setDisplaySize(WORLD_WIDTH, WORLD_HEIGHT).setDepth(1);
-    this.add.tileSprite(WORLD_WIDTH / 2, WORLD_HEIGHT / 2, WORLD_WIDTH, WORLD_HEIGHT, 'ground').setDisplaySize(WORLD_WIDTH, WORLD_HEIGHT).setDepth(4);
+    this.add.tileSprite(WORLD_WIDTH / 2, WORLD_HEIGHT / 2 + GROUND_LAYER_OFFSET, WORLD_WIDTH, WORLD_HEIGHT, 'ground').setDisplaySize(WORLD_WIDTH, WORLD_HEIGHT).setDepth(4);
     const lane = this.add.rectangle(WORLD_WIDTH / 2, GROUND_Y + 25, WORLD_WIDTH, 4, 0xd1c17e, .32).setDepth(5);
     lane.setBlendMode(Phaser.BlendModes.ADD);
     for (let x = 620; x < WORLD_WIDTH - 600; x += 360) {

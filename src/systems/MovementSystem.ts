@@ -1,4 +1,4 @@
-import { ALLY_SPACING, BASE_MOVE_SPEED, ENEMY_BASE_X, ENEMY_STOP_DISTANCE, PLAYER_BASE_X, TILE_SIZE } from '../data/constants';
+import { ALLY_SPACING, BASE_MOVE_SPEED, BASE_STOP_DISTANCE, ENEMY_BASE_X, ENEMY_STOP_DISTANCE, PLAYER_BASE_X } from '../data/constants';
 import type { Team } from '../data/types';
 import type { CombatUnit } from '../entities/CombatUnit';
 
@@ -8,23 +8,20 @@ export class MovementSystem {
     enemies: CombatUnit[],
     deltaSeconds: number,
     now: number,
-    hasTargetInRange: (unit: CombatUnit, enemies: CombatUnit[]) => boolean,
   ): void {
     const alive = units.filter((unit) => unit.alive).sort(this.frontSort(units[0]?.team ?? 'player'));
     const liveEnemies = enemies.filter((unit) => unit.alive).sort(this.frontSort(enemies[0]?.team ?? 'enemy'));
 
     alive.forEach((unit, index) => {
-      if (unit.attackLocked) return;
       const allyAhead = index > 0 ? alive[index - 1] : undefined;
       const enemyAhead = liveEnemies[0];
       const direction = unit.team === 'player' ? 1 : -1;
       const blockedByAlly = allyAhead ? direction * (allyAhead.x - unit.x) < ALLY_SPACING : false;
       const blockedByEnemy = enemyAhead ? Math.abs(enemyAhead.x - unit.x) < ENEMY_STOP_DISTANCE : false;
       const baseX = unit.team === 'player' ? ENEMY_BASE_X : PLAYER_BASE_X;
-      const baseInRange = Math.abs(unit.x - baseX) <= unit.definition.rangeTiles * TILE_SIZE + 135;
-      const fighting = hasTargetInRange(unit, liveEnemies) || baseInRange;
+      const blockedByBase = Math.abs(unit.x - baseX) <= BASE_STOP_DISTANCE;
 
-      if (blockedByAlly || blockedByEnemy || fighting) {
+      if (blockedByAlly || blockedByEnemy || blockedByBase) {
         unit.playState('idle');
         if (blockedByAlly) unit.resetCharge(now);
         return;

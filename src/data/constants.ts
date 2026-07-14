@@ -3,12 +3,14 @@ import type { Difficulty, DifficultyConfig, UnitKind } from './types';
 export const WORLD_WIDTH = 3600;
 export const WORLD_HEIGHT = 720;
 export const GROUND_Y = 585;
+export const GROUND_LAYER_OFFSET = 118;
 export const PLAYER_BASE_X = 250;
 export const ENEMY_BASE_X = WORLD_WIDTH - 250;
 export const UNIT_SCALE = 0.34;
 export const BASE_MOVE_SPEED = 94;
 export const ALLY_SPACING = 72;
 export const ENEMY_STOP_DISTANCE = 78;
+export const BASE_STOP_DISTANCE = 145;
 export const TILE_SIZE = 76;
 
 export const DIFFICULTIES: Record<Difficulty, DifficultyConfig> = {

@@ -18,13 +18,13 @@ export const UNITS: Record<UnitKind, UnitDefinition> = {
 
   knight: unit({ kind: 'knight', name: '기사', symbol: '@', family: 'cavalry', tier: 0, texture: 'knight', hp: 27, damage: 8, originalDamage: 8, cost: 13, rangeTiles: 2, attackInterval: 1.2, originalAttackInterval: 1.2, ranged: false, speedMultiplier: 1.8, description: '표준 돌격 기병' }),
   chariot: unit({ kind: 'chariot', name: '전차', symbol: 'C', family: 'cavalry', tier: 1, texture: 'chariot', hp: 45, damage: 4, originalDamage: 1, cost: 15, rangeTiles: 1, attackInterval: .6, originalAttackInterval: .15, ranged: false, speedMultiplier: 1.8, description: '높은 체력과 빠른 연속 공격' }),
-  wingedHussar: unit({ kind: 'wingedHussar', name: '윙드 후사르', symbol: 'W', family: 'cavalry', tier: 1, texture: 'wingedHussar', hp: 27, damage: 9, originalDamage: 9, cost: 13, rangeTiles: 2, attackInterval: 1.2, originalAttackInterval: 1.2, ranged: false, speedMultiplier: 1, description: '이동할수록 빨라지고 돌격 피해 증가' }),
+  wingedHussar: unit({ kind: 'wingedHussar', name: '윙드 후사르', symbol: 'W', family: 'cavalry', tier: 1, texture: 'wingedHussar', hp: 27, damage: 9, originalDamage: 9, cost: 13, rangeTiles: 2, attackInterval: 1.2, originalAttackInterval: 1.2, ranged: false, speedMultiplier: 1.8, description: '기병 속도로 시작해 2.4배까지 가속, 돌격 피해 최대 20%' }),
   dragoon: unit({ kind: 'dragoon', name: '드라군', symbol: 'D', family: 'cavalry', tier: 1, texture: 'dragoon', hp: 25, damage: 8, originalDamage: 8, cost: 15, rangeTiles: 6, attackInterval: 2, originalAttackInterval: 2, ranged: true, speedMultiplier: 1.8, description: '원거리 총과 근거리 검을 전환' }),
 
   fenrir: unit({ kind: 'fenrir', name: '펜리르 늑대전사', symbol: 'L', family: 'special', tier: 1, texture: 'fenrir', hp: 12, damage: 6, originalDamage: 4, cost: 4, rangeTiles: 1, attackInterval: .75, originalAttackInterval: .5, ranged: false, speedMultiplier: 1.8, description: '원거리 병종의 천적' }),
   ronin: unit({ kind: 'ronin', name: '로닌', symbol: 'R', family: 'special', tier: 1, texture: 'ronin', hp: 22, damage: 10, originalDamage: 10, cost: 8, rangeTiles: 1, attackInterval: 1, originalAttackInterval: 1, ranged: false, speedMultiplier: 1, description: '첫 공격이 2배인 발도술' }),
   viking: unit({ kind: 'viking', name: '바이킹 광전사', symbol: 'V', family: 'special', tier: 2, texture: 'viking', hp: 70, damage: 19, originalDamage: 14, cost: 35, rangeTiles: 1, attackInterval: .75, originalAttackInterval: .55, ranged: false, speedMultiplier: 1.8, description: '흡혈과 7초 광폭화', eliteCooldown: 30 }),
-  sanada: unit({ kind: 'sanada', name: '사나다 사무라이', symbol: 'Y', family: 'special', tier: 2, texture: 'sanada', hp: 60, damage: 22, originalDamage: 18, cost: 45, rangeTiles: 1, attackInterval: .9, originalAttackInterval: .75, ranged: false, speedMultiplier: 1, description: '돌격 가속과 2초 패링', eliteCooldown: 35 }),
+  sanada: unit({ kind: 'sanada', name: '사나다 사무라이', symbol: 'Y', family: 'special', tier: 2, texture: 'sanada', hp: 60, damage: 22, originalDamage: 18, cost: 45, rangeTiles: 1, attackInterval: .9, originalAttackInterval: .75, ranged: false, speedMultiplier: 1.8, description: '기병식 돌격 가속과 2초 패링', eliteCooldown: 35 }),
 };
 
 export const UNIT_LIST = Object.values(UNITS);

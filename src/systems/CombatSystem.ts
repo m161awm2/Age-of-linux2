@@ -149,8 +149,9 @@ export class CombatSystem {
   private prepareOpeningAttack(unit: CombatUnit, now: number, interval: number): void {
     if (unit.hasStartedCombat) return;
     unit.hasStartedCombat = true;
-    const opensImmediately = CAVALRY.has(unit.definition.kind) || unit.definition.kind === 'sanada';
-    if (!opensImmediately) unit.nextAttackAt = now + interval * 200;
+    // 원작 규칙: 모든 기병은 초기 쿨다운 0초, 나머지는 공속의 20%만큼 최초 선딜을 가진다.
+    const opensImmediately = unit.definition.family === 'cavalry' || unit.definition.kind === 'sanada';
+    unit.nextAttackAt = opensImmediately ? now : now + interval * 200;
   }
 
   private flashAttack(attacker: CombatUnit, target: AttackTarget): void {

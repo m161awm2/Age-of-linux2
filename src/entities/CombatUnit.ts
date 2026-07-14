@@ -44,7 +44,8 @@ export class CombatUnit extends Phaser.GameObjects.Container {
     this.hp = definition.hp;
     this.shieldHp = definition.kind === 'shieldGuard' ? 8 : 0;
     this.textureKey = definition.texture;
-    this.sprite = scene.add.sprite(0, 0, this.textureKey, 0).setOrigin(.5, .88).setScale(UNIT_SCALE);
+    // 정규화된 모든 프레임의 발 기준선(340px)을 컨테이너 위치에 고정한다.
+    this.sprite = scene.add.sprite(0, 0, this.textureKey, 0).setOrigin(.5, 340 / 362).setScale(UNIT_SCALE);
     this.sprite.setFlipX(team === 'enemy');
     this.hpBar = scene.add.graphics();
     this.statusText = scene.add.text(0, -130, '', {
@@ -147,7 +148,7 @@ export class CombatUnit extends Phaser.GameObjects.Container {
   speedMultiplier(now: number): number {
     if (this.isBerserking) return 2.5;
     if (this.definition.kind === 'wingedHussar' || this.definition.kind === 'sanada') {
-      return Math.min(1 + this.chargeTiles * .08, 2.4);
+      return Math.min(this.definition.speedMultiplier + this.chargeTiles * .04, 2.4);
     }
     if (now >= this.chargeGraceUntil) this.chargeDamageTiles = 0;
     return this.definition.speedMultiplier;
@@ -160,7 +161,14 @@ export class CombatUnit extends Phaser.GameObjects.Container {
     if (this.definition.kind === 'viking' && this.berserkTriggered && now >= this.berserkUntil && this.textureKey === 'vikingBerserk') {
       this.setVisualTexture('viking');
     }
-    const states = [this.isBerserking ? '광폭' : '', this.canParry(now) ? '패링' : ''].filter(Boolean);
+    const chargeBonus = this.definition.kind === 'wingedHussar' || this.definition.kind === 'sanada'
+      ? Math.round((this.chargeMultiplier(now) - 1) * 100)
+      : 0;
+    const states = [
+      this.isBerserking ? '광폭' : '',
+      this.canParry(now) ? '패링' : '',
+      chargeBonus > 0 ? `돌진 +${chargeBonus}%` : '',
+    ].filter(Boolean);
     this.statusText.setText(states.join(' · '));
   }
 
