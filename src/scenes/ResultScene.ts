@@ -46,7 +46,7 @@ export class ResultScene extends Phaser.Scene {
       return this.submitRank(loginId, status);
     }).catch((error) => {
       console.warn('자동 랭킹 등록 실패', error);
-      status.setText('랭킹 자동 등록에 실패했습니다.').setColor('#ffb09c');
+      status.setText(`랭킹 자동 등록 실패: ${this.getErrorMessage(error)}`).setColor('#ffb09c');
     });
   }
 
@@ -60,9 +60,16 @@ export class ResultScene extends Phaser.Scene {
       status.setText(message).setColor(result.personal_best ? '#dff28b' : '#d5cfaa');
     } catch (error) {
       console.warn('랭킹 기록 등록 실패', error);
-      status.setText('기록 등록에 실패했습니다. 잠시 후 다시 시도해 주세요.').setColor('#ffb09c');
+      status.setText(`기록 등록 실패: ${this.getErrorMessage(error)}`).setColor('#ffb09c');
       this.submitting = false;
     }
+  }
+
+  private getErrorMessage(error: unknown): string {
+    if (error && typeof error === 'object' && 'message' in error) {
+      return String(error.message).slice(0, 110);
+    }
+    return String(error).slice(0, 110) || '알 수 없는 오류';
   }
 
   private createButton(x: number, y: number, label: string, action: () => void): Phaser.GameObjects.GameObject[] {
