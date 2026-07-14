@@ -11,7 +11,7 @@ export interface LeaderboardEntry {
   nickname: string;
   best_time_ms: number;
   is_me: boolean;
-  unit_composition: Record<string, number>;
+  unit_composition: string[];
 }
 
 export interface FinishRankResult {
@@ -66,12 +66,12 @@ export class RankService {
     }
   }
 
-  static async finishRun(runId: string, nickname: string, unitComposition: Record<string, number>): Promise<FinishRankResult> {
+  static async finishRun(runId: string, nickname: string, unitLoadout: string[]): Promise<FinishRankResult> {
     await this.ensureAuthenticated();
     const { data, error } = await supabase.rpc('finish_ranked_run', {
       p_run_id: runId,
       p_nickname: nickname.trim(),
-      p_unit_composition: unitComposition,
+      p_unit_composition: unitLoadout,
     });
     if (error) throw error;
     return data as FinishRankResult;
@@ -88,7 +88,7 @@ export class RankService {
     return (data ?? []).map((entry: LeaderboardEntry) => ({
       ...entry,
       rank_position: Number(entry.rank_position),
-      unit_composition: entry.unit_composition ?? {},
+      unit_composition: Array.isArray(entry.unit_composition) ? entry.unit_composition : [],
     }));
   }
 

@@ -104,7 +104,7 @@ export class RankScene extends Phaser.Scene {
       const medal = entry.rank_position === 1 ? '🥇' : entry.rank_position === 2 ? '🥈' : entry.rank_position === 3 ? '🥉' : `${entry.rank_position}`;
       this.addTableText(left + 38, y, medal, 14, entry.is_me ? '#eff59a' : '#ede4c7');
       this.addTableText(left + tableWidth * .25, y, `${entry.nickname}${entry.is_me ? '  (나)' : ''}`, 14, entry.is_me ? '#eff59a' : '#f3eedb');
-      this.addCompositionSprites(left + tableWidth * .59, y, entry.unit_composition, compact);
+      this.addLoadoutSprites(left + tableWidth * .59, y, entry.unit_composition, compact);
       this.addTableText(left + tableWidth - 90, y, this.formatTime(entry.best_time_ms), 14, '#d7e3ae');
     });
 
@@ -145,34 +145,21 @@ export class RankScene extends Phaser.Scene {
     return `${minutes}:${seconds.toString().padStart(2, '0')}.${millis.toString().padStart(3, '0')}`;
   }
 
-  private addCompositionSprites(x: number, y: number, composition: Record<string, number>, compact: boolean): void {
-    const units = Object.entries(composition)
-      .filter(([, count]) => Number(count) > 0)
-      .sort((a, b) => Number(b[1]) - Number(a[1]));
+  private addLoadoutSprites(x: number, y: number, units: string[], compact: boolean): void {
     if (units.length === 0) {
       this.addTableText(x, y, '-', 12, '#d6d9c2');
       return;
     }
-    const visible = units.slice(0, 3);
-    const gap = compact ? 42 : 48;
-    visible.forEach(([kind, count], index) => {
+    const visible = units.slice(0, 4);
+    const gap = compact ? 36 : 42;
+    visible.forEach((kind, index) => {
       const unit = UNITS[kind as keyof typeof UNITS];
       if (!unit) return;
       const spriteX = x + (index - (visible.length - 1) / 2) * gap;
       const sprite = this.add.sprite(spriteX, y, unit.texture, 0).setDisplaySize(compact ? 29 : 33, compact ? 29 : 33);
       sprite.play(`${unit.texture}-idle`);
-      const badge = this.add.text(spriteX + (compact ? 12 : 14), y + 10, `×${count}`, {
-        fontFamily: 'monospace', fontSize: compact ? '9px' : '10px', fontStyle: 'bold', color: '#fff4bd',
-        backgroundColor: '#101912dd', padding: { x: 2, y: 1 },
-      }).setOrigin(.5);
-      this.contentObjects.push(sprite, badge);
+      this.contentObjects.push(sprite);
     });
-    if (units.length > 3) {
-      const more = this.add.text(x + gap * 1.82, y, `+${units.length - 3}`, {
-        fontFamily: 'monospace', fontSize: '10px', fontStyle: 'bold', color: '#bfc7ae',
-      }).setOrigin(.5);
-      this.contentObjects.push(more);
-    }
   }
 
   private createButton(x: number, y: number, width: number, height: number, label: string, action: () => void): Phaser.GameObjects.GameObject[] {

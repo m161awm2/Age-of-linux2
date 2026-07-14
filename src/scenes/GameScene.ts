@@ -28,7 +28,6 @@ export class GameScene extends Phaser.Scene {
   private enemyBase!: BaseEntity;
   private playerUnits: CombatUnit[] = [];
   private enemyUnits: CombatUnit[] = [];
-  private unitComposition: Partial<Record<UnitKind, number>> = {};
   private hud!: GameHud;
   private settingsPanel!: SettingsPanel;
   private startedAt = 0;
@@ -51,7 +50,6 @@ export class GameScene extends Phaser.Scene {
     this.movement = new MovementSystem();
     this.playerUnits = [];
     this.enemyUnits = [];
-    this.unitComposition = {};
     this.finished = false;
     this.rankedRunPromise = Promise.resolve(null);
     this.promotionMode = null;
@@ -182,7 +180,6 @@ export class GameScene extends Phaser.Scene {
     const x = team === 'player' ? PLAYER_BASE_X + 185 : ENEMY_BASE_X - 185;
     const unit = new CombatUnit(this, UNITS[kind], team, x, GROUND_Y + 2);
     (team === 'player' ? this.playerUnits : this.enemyUnits).push(unit);
-    if (team === 'player') this.unitComposition[kind] = (this.unitComposition[kind] ?? 0) + 1;
   }
 
   private openPromotion(mode: PromotionMode): void {
@@ -348,7 +345,12 @@ export class GameScene extends Phaser.Scene {
       ]);
       void rankedRun.then((rankedRunId) => this.scene.start('ResultScene', {
         victory, elapsedSeconds, difficulty: this.difficulty, rankedRunId: rankedRunId ?? undefined,
-        unitComposition: { ...this.unitComposition },
+        unitLoadout: [
+          this.progress.infantry,
+          this.progress.archer,
+          this.progress.cavalry,
+          ...(this.progress.special ? [this.progress.special] : []),
+        ],
       }));
     });
   }

@@ -55,7 +55,7 @@ export class ResultScene extends Phaser.Scene {
     this.submitting = true;
     status.setText(`${nickname} 이름으로 기록을 등록하는 중…`).setColor('#e9e4bd');
     try {
-      const result = await RankService.finishRun(this.result.rankedRunId, nickname, this.result.unitComposition);
+      const result = await RankService.finishRun(this.result.rankedRunId, nickname, this.result.unitLoadout);
       const message = result.personal_best ? '개인 최고 기록이 랭킹에 등록되었습니다!' : '전투 기록이 확인되었습니다. 기존 최고 기록을 유지합니다.';
       status.setText(message).setColor(result.personal_best ? '#dff28b' : '#d5cfaa');
     } catch (error) {

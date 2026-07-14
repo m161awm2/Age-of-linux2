@@ -85,10 +85,10 @@ begin
   if coalesce((auth.jwt()->>'is_anonymous')::boolean, false) then raise exception '정식 로그인이 필요합니다.'; end if;
   p_nickname := btrim(p_nickname);
   if p_nickname !~ '^[가-힣A-Za-z0-9 _-]{2,16}$' then raise exception '닉네임 형식이 올바르지 않습니다.'; end if;
-  if jsonb_typeof(p_unit_composition) <> 'object' then raise exception '병종 조합 형식이 올바르지 않습니다.'; end if;
-  if (select count(*) from jsonb_each(p_unit_composition)) > 20 then raise exception '병종 조합이 너무 큽니다.'; end if;
-  for v_unit in select key, value from jsonb_each_text(p_unit_composition) loop
-    if v_unit.key !~ '^[A-Za-z]+$' or v_unit.value !~ '^[0-9]{1,4}$' then
+  if jsonb_typeof(p_unit_composition) <> 'array' then raise exception '병종 조합 형식이 올바르지 않습니다.'; end if;
+  if jsonb_array_length(p_unit_composition) not between 3 and 4 then raise exception '병종 조합은 3~4개여야 합니다.'; end if;
+  for v_unit in select value from jsonb_array_elements_text(p_unit_composition) loop
+    if v_unit.value !~ '^[A-Za-z]+$' then
       raise exception '병종 조합 값이 올바르지 않습니다.';
     end if;
   end loop;
