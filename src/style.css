@@ -67,8 +67,10 @@ kbd {
   position: relative; min-height: 62px; color: #f5efd7; background: linear-gradient(180deg, #263b30, #18271f);
   border: 1px solid #607151; border-radius: 10px; cursor: pointer; transition: transform .12s, border-color .12s, filter .12s;
 }
-.unit-button:hover:not(:disabled), .hud-action:hover { transform: translateY(-2px); border-color: #b6cf76; filter: brightness(1.12); }
+.unit-button:hover:not(:disabled):not(.unavailable), .hud-action:hover { transform: translateY(-2px); border-color: #b6cf76; filter: brightness(1.12); }
 .unit-button:disabled { cursor: not-allowed; filter: grayscale(.55) brightness(.65); }
+.unit-button.unavailable { border-color: #4b5347; filter: grayscale(.55) brightness(.65); }
+.unit-button.unavailable:hover { filter: grayscale(.35) brightness(.78); }
 .unit-button { display: grid; grid-template-columns: 58px minmax(0, 1fr); align-items: center; gap: 5px; padding: 3px 7px 3px 3px; overflow: hidden; }
 .unit-portrait { position: relative; display: none; width: 58px; height: 58px; overflow: hidden; align-self: end; pointer-events: none; }
 .unit-portrait.visible { display: block; }

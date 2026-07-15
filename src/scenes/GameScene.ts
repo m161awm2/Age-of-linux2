@@ -187,6 +187,7 @@ export class GameScene extends Phaser.Scene {
     if (!this.economy.spend(definition.cost)) { this.hud.message(`${definition.name} 생산에 ${definition.cost}G가 필요합니다.`); return; }
     this.spawnUnit(kind, 'player');
     if (definition.eliteCooldown) this.specialReadyAt = this.time.now + definition.eliteCooldown * 1000;
+    this.hud.message(`${definition.name}을(를) 소환했습니다.`);
   }
 
   private spawnUnit(kind: UnitKind, team: 'player' | 'enemy'): void {

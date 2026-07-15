@@ -137,7 +137,14 @@ export class GameHud {
         name.textContent = definition.name;
         const cooldown = slot === 'special' && state.specialCooldown > 0 ? ` · ${Math.ceil(state.specialCooldown)}초` : '';
         cost.textContent = `${definition.cost}G${cooldown}`;
-        button.disabled = state.gold < definition.cost || (slot === 'special' && state.specialCooldown > 0);
+        const unavailable = state.gold < definition.cost || (slot === 'special' && state.specialCooldown > 0);
+        button.disabled = false;
+        button.classList.toggle('unavailable', unavailable);
+        button.title = state.gold < definition.cost
+          ? `${definition.cost}G 필요`
+          : slot === 'special' && state.specialCooldown > 0
+            ? `재정비 ${Math.ceil(state.specialCooldown)}초 남음`
+            : `${definition.name} 소환`;
       }
     });
   }
