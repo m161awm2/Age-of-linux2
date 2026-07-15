@@ -23,6 +23,13 @@ export interface PvpSpawnEvent {
   created_at: string;
 }
 
+export interface PvpBattleSnapshot {
+  sequence: number;
+  player_base_hp: number;
+  enemy_base_hp: number;
+  units: Array<{ event_id: number; x: number; hp: number }>;
+}
+
 export class PvpRoomService {
   static async createRoom(): Promise<PvpRoom> {
     await this.ensureAuthenticated();
@@ -65,6 +72,25 @@ export class PvpRoomService {
     const { data, error } = await supabase.rpc('get_pvp_events', { p_room_id: roomId, p_after_id: afterId });
     if (error) throw error;
     return (data ?? []).map((value: unknown) => this.parseSpawnEvent(value));
+  }
+
+  static async setBattleState(roomId: string, snapshot: PvpBattleSnapshot): Promise<void> {
+    await this.ensureAuthenticated();
+    const { error } = await supabase.rpc('set_pvp_battle_state', { p_room_id: roomId, p_snapshot: snapshot });
+    if (error) throw error;
+  }
+
+  static async getBattleState(roomId: string): Promise<PvpBattleSnapshot | null> {
+    await this.ensureAuthenticated();
+    const { data, error } = await supabase.rpc('get_pvp_battle_state', { p_room_id: roomId });
+    if (error) throw error;
+    if (!data || typeof data !== 'object') return null;
+    const value = data as Partial<PvpBattleSnapshot>;
+    if (typeof value.sequence !== 'number' || typeof value.player_base_hp !== 'number' ||
+        typeof value.enemy_base_hp !== 'number' || !Array.isArray(value.units)) {
+      throw new Error('전투 상태 정보가 올바르지 않습니다.');
+    }
+    return value as PvpBattleSnapshot;
   }
 
   private static async ensureAuthenticated(): Promise<void> {

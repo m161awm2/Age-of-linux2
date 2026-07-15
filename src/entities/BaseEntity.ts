@@ -50,6 +50,11 @@ export class BaseEntity extends Phaser.GameObjects.Container {
     this.scene.tweens.add({ targets: this, alpha: .55, yoyo: true, duration: 80 });
   }
 
+  applyNetworkHp(hp: number): void {
+    this.hp = Phaser.Math.Clamp(hp, 0, this.maxHp);
+    this.drawHealth();
+  }
+
   private drawHealth(): void {
     const width = 230;
     const ratio = Phaser.Math.Clamp(this.hp / this.maxHp, 0, 1);

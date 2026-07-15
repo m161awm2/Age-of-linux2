@@ -223,6 +223,14 @@ export class CombatUnit extends Phaser.GameObjects.Container {
     this.statusText.setText(states.join(' · '));
   }
 
+  applyNetworkState(x: number, hp: number): void {
+    const moved = Math.abs(this.x - x) > .5;
+    this.x = x;
+    this.hp = Phaser.Math.Clamp(hp, 0, this.definition.hp);
+    if (this.alive) this.playState(moved ? 'move' : 'idle');
+    this.drawHealth(this.scene.time.now);
+  }
+
   showDamage(amount: number, color = '#fff1b4'): void {
     const text = this.scene.add.text(this.x, this.y - 120, `-${Math.floor(amount)}`, {
       fontFamily: 'Pretendard, sans-serif', fontSize: '20px', fontStyle: 'bold', color,

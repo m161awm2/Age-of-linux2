@@ -10,7 +10,7 @@ import { BaseEntity } from '../entities/BaseEntity';
 import { CombatUnit } from '../entities/CombatUnit';
 import { GameProgressService } from '../services/GameProgressService';
 import { RankService } from '../services/RankService';
-import { PvpRoomService } from '../services/PvpRoomService';
+import { PvpRoomService, type PvpBattleSnapshot } from '../services/PvpRoomService';
 import { AISystem } from '../systems/AISystem';
 import { CombatSystem } from '../systems/CombatSystem';
 import { EconomySystem } from '../systems/EconomySystem';
@@ -45,9 +45,13 @@ export class GameScene extends Phaser.Scene {
   private pvp: GameLaunchData['pvp'];
   private localTeam: Team = 'player';
   private pvpPollTimer: number | null = null;
+  private pvpStateTimer: number | null = null;
   private pvpPolling = false;
+  private pvpStateBusy = false;
+  private pvpStateSequence = 0;
   private lastPvpEventId = 0;
   private readonly appliedPvpEvents = new Set<number>();
+  private readonly pvpUnits = new Map<number, CombatUnit>();
 
   constructor() { super('GameScene'); }
 
@@ -68,8 +72,11 @@ export class GameScene extends Phaser.Scene {
     this.lastPromotionGold = -1;
     this.pinchDistance = 0;
     this.pvpPolling = false;
+    this.pvpStateBusy = false;
+    this.pvpStateSequence = 0;
     this.lastPvpEventId = 0;
     this.appliedPvpEvents.clear();
+    this.pvpUnits.clear();
   }
 
   create(): void {
@@ -96,6 +103,10 @@ export class GameScene extends Phaser.Scene {
       this.hud.message(`${this.pvp.isHost ? '왼쪽' : '오른쪽'} 진영 · ${this.pvp.opponentLoginId}님과의 전투가 시작되었습니다.`);
       void this.pollPvpEvents();
       this.pvpPollTimer = window.setInterval(() => void this.pollPvpEvents(), 350);
+      this.pvpStateTimer = window.setInterval(
+        () => void (this.pvp!.isHost ? this.publishPvpState() : this.pullPvpState()),
+        250,
+      );
     } else {
       this.hud.message(`${difficultyConfig.label} 난이도 전투가 시작되었습니다.`);
       this.rankedRunPromise = RankService.startRun(this.difficulty);
@@ -113,11 +124,13 @@ export class GameScene extends Phaser.Scene {
     if (!this.pvp) this.ai.update(dt, elapsed, (kind) => this.spawnUnit(kind, 'enemy'));
     this.updateCamera(dt);
 
-    this.movement.update(this.playerUnits, this.enemyUnits, dt, now);
-    this.movement.update(this.enemyUnits, this.playerUnits, dt, now);
-    this.combat.update(this.playerUnits, this.enemyUnits, this.enemyBase, now);
-    this.combat.update(this.enemyUnits, this.playerUnits, this.playerBase, now);
-    this.payBountiesAndRemoveDead();
+    if (!this.pvp || this.pvp.isHost) {
+      this.movement.update(this.playerUnits, this.enemyUnits, dt, now);
+      this.movement.update(this.enemyUnits, this.playerUnits, dt, now);
+      this.combat.update(this.playerUnits, this.enemyUnits, this.enemyBase, now);
+      this.combat.update(this.enemyUnits, this.playerUnits, this.playerBase, now);
+      this.payBountiesAndRemoveDead();
+    }
     if (!this.pvp) this.applyEnemyBaseSupply();
     this.updateHud(elapsed);
 
@@ -227,11 +240,12 @@ export class GameScene extends Phaser.Scene {
     this.hud.message(`${definition.name}을(를) 소환했습니다.`);
   }
 
-  private spawnUnit(kind: UnitKind, team: 'player' | 'enemy'): void {
+  private spawnUnit(kind: UnitKind, team: 'player' | 'enemy'): CombatUnit {
     const x = team === 'player' ? PLAYER_BASE_X + 185 : ENEMY_BASE_X - 185;
     const displayTeam: Team = this.pvp ? (team === this.localTeam ? 'player' : 'enemy') : team;
     const unit = new CombatUnit(this, UNITS[kind], team, x, GROUND_Y + 2, displayTeam);
     (team === 'player' ? this.playerUnits : this.enemyUnits).push(unit);
+    return unit;
   }
 
   private async pollPvpEvents(): Promise<void> {
@@ -260,8 +274,59 @@ export class GameScene extends Phaser.Scene {
     const scheduledAt = new Date(event.created_at).getTime() + 1000;
     const delay = Number.isFinite(scheduledAt) ? Math.max(0, scheduledAt - Date.now()) : 0;
     this.time.delayedCall(delay, () => {
-      if (!this.finished && this.scene.isActive()) this.spawnUnit(event.unit_kind, team);
+      if (!this.finished && this.scene.isActive()) {
+        const unit = this.spawnUnit(event.unit_kind, team);
+        this.pvpUnits.set(event.id, unit);
+      }
     });
+  }
+
+  private async publishPvpState(force = false): Promise<void> {
+    if (!this.pvp?.isHost || (this.pvpStateBusy && !force) || (this.finished && !force)) return;
+    if (!force) this.pvpStateBusy = true;
+    const snapshot: PvpBattleSnapshot = {
+      sequence: ++this.pvpStateSequence,
+      player_base_hp: this.playerBase.hp,
+      enemy_base_hp: this.enemyBase.hp,
+      units: [...this.pvpUnits.entries()].map(([eventId, unit]) => ({ event_id: eventId, x: unit.x, hp: unit.hp })),
+    };
+    try {
+      await PvpRoomService.setBattleState(this.pvp.roomId, snapshot);
+    } catch (error) {
+      console.warn('1대1 전투 상태 전송 실패', error);
+    } finally {
+      if (!force) this.pvpStateBusy = false;
+    }
+  }
+
+  private async pullPvpState(): Promise<void> {
+    if (!this.pvp || this.pvp.isHost || this.pvpStateBusy || this.finished) return;
+    this.pvpStateBusy = true;
+    try {
+      const snapshot = await PvpRoomService.getBattleState(this.pvp.roomId);
+      if (!snapshot) return;
+      this.playerBase.applyNetworkHp(snapshot.player_base_hp);
+      this.enemyBase.applyNetworkHp(snapshot.enemy_base_hp);
+      snapshot.units.forEach((state) => {
+        const unit = this.pvpUnits.get(state.event_id);
+        if (!unit || !unit.active) return;
+        const wasAlive = unit.alive;
+        unit.applyNetworkState(state.x, state.hp);
+        if (wasAlive && !unit.alive && unit.team !== this.localTeam) {
+          this.economy.reward(Math.max(1, Math.floor(unit.definition.cost * .5)));
+        }
+        if (!unit.alive) {
+          unit.destroy();
+          this.pvpUnits.delete(state.event_id);
+          this.playerUnits = this.playerUnits.filter((item) => item !== unit);
+          this.enemyUnits = this.enemyUnits.filter((item) => item !== unit);
+        }
+      });
+    } catch (error) {
+      console.warn('1대1 전투 상태 수신 실패', error);
+    } finally {
+      this.pvpStateBusy = false;
+    }
   }
 
   private getNetworkError(error: unknown): string {
@@ -430,10 +495,13 @@ export class GameScene extends Phaser.Scene {
 
   private finish(victory: boolean, elapsedSeconds: number): void {
     if (this.finished) return;
+    if (this.pvp?.isHost) void this.publishPvpState(true);
     this.finished = true;
     this.closePromotion();
     if (this.pvpPollTimer !== null) window.clearInterval(this.pvpPollTimer);
     this.pvpPollTimer = null;
+    if (this.pvpStateTimer !== null) window.clearInterval(this.pvpStateTimer);
+    this.pvpStateTimer = null;
     this.time.delayedCall(700, () => {
       if (this.pvp) {
         this.scene.start('ResultScene', {
@@ -463,6 +531,8 @@ export class GameScene extends Phaser.Scene {
   private shutdown(): void {
     if (this.pvpPollTimer !== null) window.clearInterval(this.pvpPollTimer);
     this.pvpPollTimer = null;
+    if (this.pvpStateTimer !== null) window.clearInterval(this.pvpStateTimer);
+    this.pvpStateTimer = null;
     this.events.off('battle-message', this.onBattleMessage, this);
     this.combat?.destroy();
     this.hud?.destroy();
