@@ -6,6 +6,9 @@ import type { BaseEntity } from './BaseEntity';
 export type AttackTarget = CombatUnit | BaseEntity;
 type UnitState = 'idle' | 'move' | 'attack';
 
+const FULL_CHARGE_TILES = 8;
+const MAX_CHARGE_DAMAGE_BONUS = .5;
+
 let nextId = 1;
 
 export class CombatUnit extends Phaser.GameObjects.Container {
@@ -34,6 +37,7 @@ export class CombatUnit extends Phaser.GameObjects.Container {
 
   private textureKey: string;
   private unitState: UnitState = 'idle';
+  private readonly chargeFx: Phaser.GameObjects.Graphics;
   private readonly sprite: Phaser.GameObjects.Sprite;
   private readonly hpBar: Phaser.GameObjects.Graphics;
   private readonly statusText: Phaser.GameObjects.Text;
@@ -45,6 +49,7 @@ export class CombatUnit extends Phaser.GameObjects.Container {
     this.hp = definition.hp;
     this.shieldHp = definition.kind === 'shieldGuard' ? 8 : 0;
     this.textureKey = definition.texture;
+    this.chargeFx = scene.add.graphics();
     // 정규화된 모든 프레임의 발 기준선(340px)을 컨테이너 위치에 고정한다.
     this.sprite = scene.add.sprite(0, 0, this.textureKey, 0).setOrigin(.5, 340 / 362).setScale(UNIT_SCALE);
     this.sprite.setFlipX(team === 'enemy');
@@ -53,7 +58,7 @@ export class CombatUnit extends Phaser.GameObjects.Container {
       fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif',
       fontSize: '13px', color: '#fff9dd', stroke: '#16120d', strokeThickness: 4,
     }).setOrigin(.5);
-    this.add([this.sprite, this.hpBar, this.statusText]);
+    this.add([this.chargeFx, this.sprite, this.hpBar, this.statusText]);
     this.setSize(72, 116);
     this.setDepth(20 + Math.round(y));
     scene.add.existing(this);
@@ -169,16 +174,22 @@ export class CombatUnit extends Phaser.GameObjects.Container {
     this.chargeTiles = 0;
   }
 
+  consumeCharge(): void {
+    this.chargeTiles = 0;
+    this.chargeDamageTiles = 0;
+    this.chargeGraceUntil = 0;
+  }
+
   chargeMultiplier(now: number): number {
     const tiles = now < this.chargeGraceUntil ? Math.max(this.chargeTiles, this.chargeDamageTiles) : this.chargeTiles;
-    const speedGain = Math.min(tiles * .08, 1.4);
-    return 1 + .2 * (speedGain / 1.4);
+    return 1 + Math.min(tiles / FULL_CHARGE_TILES, 1) * MAX_CHARGE_DAMAGE_BONUS;
   }
 
   speedMultiplier(now: number): number {
     if (this.isBerserking) return 2.5;
     if (this.definition.kind === 'wingedHussar' || this.definition.kind === 'sanada') {
-      return Math.min(this.definition.speedMultiplier + this.chargeTiles * .04, 2.4);
+      const acceleration = Math.min(this.chargeTiles / FULL_CHARGE_TILES, 1) * .6;
+      return this.definition.speedMultiplier + acceleration;
     }
     if (now >= this.chargeGraceUntil) this.chargeDamageTiles = 0;
     return this.definition.speedMultiplier;
@@ -194,6 +205,7 @@ export class CombatUnit extends Phaser.GameObjects.Container {
     const chargeBonus = this.definition.kind === 'wingedHussar' || this.definition.kind === 'sanada'
       ? Math.round((this.chargeMultiplier(now) - 1) * 100)
       : 0;
+    this.drawChargeFx(chargeBonus);
     const states = [
       this.isStunned ? '기절' : '',
       this.isBerserking ? '광폭' : '',
@@ -210,6 +222,18 @@ export class CombatUnit extends Phaser.GameObjects.Container {
       stroke: '#1b120c', strokeThickness: 5,
     }).setOrigin(.5).setDepth(100);
     this.scene.tweens.add({ targets: text, y: text.y - 45, alpha: 0, duration: 650, onComplete: () => text.destroy() });
+  }
+
+  private drawChargeFx(chargeBonus: number): void {
+    this.chargeFx.clear();
+    if (chargeBonus < 8 || this.unitState !== 'move') return;
+    const direction = this.team === 'player' ? -1 : 1;
+    const strength = Phaser.Math.Clamp(chargeBonus / 50, .25, 1);
+    this.chargeFx.lineStyle(5, 0xffd45c, .3 + strength * .45);
+    this.chargeFx.lineBetween(direction * 24, -76, direction * (55 + strength * 45), -76);
+    this.chargeFx.lineStyle(3, 0xfff1a6, .25 + strength * .5);
+    this.chargeFx.lineBetween(direction * 18, -55, direction * (44 + strength * 55), -55);
+    this.chargeFx.lineBetween(direction * 16, -96, direction * (38 + strength * 38), -96);
   }
 
   private setVisualTexture(textureKey: string): void {

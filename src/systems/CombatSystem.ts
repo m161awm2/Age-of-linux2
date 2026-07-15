@@ -70,9 +70,12 @@ export class CombatSystem {
     const distance = Math.abs(attacker.x - target.x);
     const dragoonMelee = attacker.definition.kind === 'dragoon' && distance <= 1.5 * TILE_SIZE;
     let damage = dragoonMelee ? Math.floor(attacker.attackDamage * 1.5) : attacker.attackDamage;
+    let chargeBonus = 0;
 
     if (attacker.definition.kind === 'wingedHussar' || attacker.definition.kind === 'sanada') {
-      damage = Math.round(damage * attacker.chargeMultiplier(now));
+      const chargeMultiplier = attacker.chargeMultiplier(now);
+      chargeBonus = Math.round((chargeMultiplier - 1) * 100);
+      damage = Math.round(damage * chargeMultiplier);
     }
     if (attacker.definition.kind === 'fenrir' && RANGED.has(target.definition.kind)) damage = Math.floor(damage * 1.4);
     if (RANGED.has(attacker.definition.kind) && target.definition.kind === 'fenrir' && !dragoonMelee) damage = Math.floor(damage * .6);
@@ -97,7 +100,7 @@ export class CombatSystem {
     } else {
       if (isIaiStrike) target.flashIaiHit();
       const dealt = target.takeDamage(damage, now);
-      target.showDamage(damage);
+      target.showDamage(damage, chargeBonus > 0 ? '#ffd45c' : '#fff1b4');
       if (isIaiStrike && target.alive) target.applyStun(now, 400);
       if (attacker.definition.kind === 'viking' && dealt > 0) attacker.heal(1);
       if (attacker.definition.kind === 'crusader' && dealt > 0) {
@@ -109,7 +112,8 @@ export class CombatSystem {
       }
     }
 
-    attacker.resetCharge(now);
+    if (chargeBonus > 0) this.flashChargeImpact(attacker, target, chargeBonus);
+    attacker.consumeCharge();
     if (
       (target.definition.kind === 'spearman' || target.definition.kind === 'halberd')
       && CAVALRY.has(attacker.definition.kind)
@@ -128,11 +132,19 @@ export class CombatSystem {
   }
 
   private applyBaseDamage(attacker: CombatUnit, base: BaseEntity): void {
+    const now = this.scene.time.now;
     let damage = attacker.attackDamage;
+    let chargeBonus = 0;
+    if (attacker.definition.kind === 'wingedHussar' || attacker.definition.kind === 'sanada') {
+      const chargeMultiplier = attacker.chargeMultiplier(now);
+      chargeBonus = Math.round((chargeMultiplier - 1) * 100);
+      damage = Math.round(damage * chargeMultiplier);
+    }
     if (attacker.isBerserking) damage = Math.floor(damage * 2);
     base.takeDamage(damage);
     if (attacker.definition.kind === 'ronin' && attacker.firstStrike) attacker.firstStrike = false;
-    attacker.resetCharge(this.scene.time.now);
+    if (chargeBonus > 0) this.flashChargeImpact(attacker, base, chargeBonus);
+    attacker.consumeCharge();
     const text = this.scene.add.text(base.x, base.y - 300, `-${damage}`, {
       fontFamily: 'Pretendard, sans-serif', fontSize: '24px', fontStyle: 'bold', color: '#ffd27c',
       stroke: '#2a170d', strokeThickness: 6,
@@ -166,6 +178,24 @@ export class CombatSystem {
     graphics.lineStyle(4, color, .95).lineBetween(attacker.x, attacker.y - 70, target.x, target.y - 65);
     const spark = this.scene.add.circle(target.x, target.y - 65, 8, color, .9).setDepth(41);
     this.scene.tweens.add({ targets: [graphics, spark], alpha: 0, duration: 180, onComplete: () => { graphics.destroy(); spark.destroy(); } });
+  }
+
+  private flashChargeImpact(attacker: CombatUnit, target: AttackTarget, bonus: number): void {
+    const color = attacker.definition.kind === 'sanada' ? 0xff5a45 : 0xffd45c;
+    const x = target.x;
+    const y = target.y - 62;
+    const ring = this.scene.add.circle(x, y, 18, color, .22).setStrokeStyle(7, color, .95).setDepth(95);
+    const slash = this.scene.add.rectangle(x, y, 92, 10, color, .95)
+      .setRotation(attacker.team === 'player' ? -.28 : .28)
+      .setDepth(96);
+    const label = this.scene.add.text(x, y - 52, `돌진 +${bonus}%`, {
+      fontFamily: 'Pretendard, sans-serif', fontSize: '22px', fontStyle: 'bold', color: '#fff3b0',
+      stroke: '#541b0e', strokeThickness: 6,
+    }).setOrigin(.5).setDepth(100);
+    this.scene.tweens.add({ targets: ring, scale: 3.2, alpha: 0, duration: 280, onComplete: () => ring.destroy() });
+    this.scene.tweens.add({ targets: slash, scaleX: 1.8, alpha: 0, duration: 220, onComplete: () => slash.destroy() });
+    this.scene.tweens.add({ targets: label, y: label.y - 35, alpha: 0, duration: 700, onComplete: () => label.destroy() });
+    this.scene.cameras.main.shake(90, .0025);
   }
 
   private frontSort(team: Team): (a: CombatUnit, b: CombatUnit) => number {
