@@ -27,7 +27,16 @@ export class StartScene extends Phaser.Scene {
       return;
     }
 
-    this.add.image(width / 2, height / 2, 'sky').setDisplaySize(width, height);
+    const skySource = this.textures.get('sky').getSourceImage();
+    const movingSky = this.add.tileSprite(width / 2, height / 2, width, height, 'sky')
+      .setTileScale(width / skySource.width, height / skySource.height);
+    this.tweens.add({
+      targets: movingSky,
+      tilePositionX: skySource.width,
+      duration: 180000,
+      ease: 'Linear',
+      repeat: -1,
+    });
     this.add.image(width / 2, height, 'hills').setOrigin(.5, 1).setDisplaySize(width, height);
     this.add.image(width / 2, height, 'ground').setOrigin(.5, 1).setDisplaySize(width, height);
     this.add.rectangle(width / 2, height / 2, width, height, 0x07120e, .42);
