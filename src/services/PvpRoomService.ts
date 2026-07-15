@@ -1,5 +1,6 @@
 import { AuthService } from './AuthService';
 import { supabase } from './SupabaseClient';
+import type { UnitKind } from '../data/types';
 
 export type PvpRoomStatus = 'waiting' | 'full' | 'cancelled';
 
@@ -13,6 +14,13 @@ export interface PvpRoom {
   guest_login_id: string | null;
   is_host: boolean;
   expires_at: string;
+}
+
+export interface PvpSpawnEvent {
+  id: number;
+  user_id: string;
+  unit_kind: UnitKind;
+  created_at: string;
 }
 
 export class PvpRoomService {
@@ -45,6 +53,20 @@ export class PvpRoomService {
     if (error) throw error;
   }
 
+  static async sendSpawn(roomId: string, unitKind: UnitKind): Promise<PvpSpawnEvent> {
+    await this.ensureAuthenticated();
+    const { data, error } = await supabase.rpc('send_pvp_spawn', { p_room_id: roomId, p_unit_kind: unitKind });
+    if (error) throw error;
+    return this.parseSpawnEvent(data);
+  }
+
+  static async getSpawnEvents(roomId: string, afterId: number): Promise<PvpSpawnEvent[]> {
+    await this.ensureAuthenticated();
+    const { data, error } = await supabase.rpc('get_pvp_events', { p_room_id: roomId, p_after_id: afterId });
+    if (error) throw error;
+    return (data ?? []).map((value: unknown) => this.parseSpawnEvent(value));
+  }
+
   private static async ensureAuthenticated(): Promise<void> {
     if (!await AuthService.getSessionUser()) throw new Error('로그인이 필요합니다.');
   }
@@ -54,5 +76,15 @@ export class PvpRoomService {
     const room = value as Partial<PvpRoom>;
     if (typeof room.id !== 'string' || typeof room.code !== 'string') throw new Error('방 정보가 올바르지 않습니다.');
     return room as PvpRoom;
+  }
+
+  private static parseSpawnEvent(value: unknown): PvpSpawnEvent {
+    if (!value || typeof value !== 'object') throw new Error('전투 동기화 정보를 불러오지 못했습니다.');
+    const event = value as Partial<PvpSpawnEvent>;
+    if ((typeof event.id !== 'number' && typeof event.id !== 'string') ||
+        typeof event.user_id !== 'string' || typeof event.unit_kind !== 'string') {
+      throw new Error('전투 동기화 정보가 올바르지 않습니다.');
+    }
+    return { ...event, id: Number(event.id) } as PvpSpawnEvent;
   }
 }

@@ -5,11 +5,12 @@ import {
   SPECIAL_ELITE, SPECIAL_UNLOCK_COST, WORLD_HEIGHT, WORLD_WIDTH,
 } from '../data/constants';
 import { UNITS } from '../data/units';
-import type { Difficulty, GameLaunchData, UnitKind } from '../data/types';
+import type { Difficulty, GameLaunchData, Team, UnitKind } from '../data/types';
 import { BaseEntity } from '../entities/BaseEntity';
 import { CombatUnit } from '../entities/CombatUnit';
 import { GameProgressService } from '../services/GameProgressService';
 import { RankService } from '../services/RankService';
+import { PvpRoomService } from '../services/PvpRoomService';
 import { AISystem } from '../systems/AISystem';
 import { CombatSystem } from '../systems/CombatSystem';
 import { EconomySystem } from '../systems/EconomySystem';
@@ -41,11 +42,19 @@ export class GameScene extends Phaser.Scene {
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
   private cameraKeys?: Record<'left' | 'right' | 'zoomIn' | 'zoomOut', Phaser.Input.Keyboard.Key>;
   private pinchDistance = 0;
+  private pvp: GameLaunchData['pvp'];
+  private localTeam: Team = 'player';
+  private pvpPollTimer: number | null = null;
+  private pvpPolling = false;
+  private lastPvpEventId = 0;
+  private readonly appliedPvpEvents = new Set<number>();
 
   constructor() { super('GameScene'); }
 
   init(data: GameLaunchData): void {
     this.difficulty = data.difficulty ?? 'Hard';
+    this.pvp = data.pvp;
+    this.localTeam = this.pvp?.isHost === false ? 'enemy' : 'player';
     this.progress = new GameProgressService();
     this.economy = new EconomySystem();
     this.movement = new MovementSystem();
@@ -58,24 +67,39 @@ export class GameScene extends Phaser.Scene {
     this.specialReadyAt = 0;
     this.lastPromotionGold = -1;
     this.pinchDistance = 0;
+    this.pvpPolling = false;
+    this.lastPvpEventId = 0;
+    this.appliedPvpEvents.clear();
   }
 
   create(): void {
     const difficultyConfig = DIFFICULTIES[this.difficulty];
     this.startedAt = this.time.now;
-    this.lastEnemySupplyHp = difficultyConfig.enemyBaseHp;
+    this.lastEnemySupplyHp = this.pvp ? 100 : difficultyConfig.enemyBaseHp;
     this.ai = new AISystem(this.difficulty);
     this.combat = new CombatSystem(this);
     this.createBattlefield();
-    this.playerBase = new BaseEntity(this, 'player', PLAYER_BASE_X, GROUND_Y + 2, 100);
-    this.enemyBase = new BaseEntity(this, 'enemy', ENEMY_BASE_X, GROUND_Y + 2, difficultyConfig.enemyBaseHp);
+    this.playerBase = new BaseEntity(
+      this, 'player', PLAYER_BASE_X, GROUND_Y + 2, 100, 'player',
+      this.pvp && this.localTeam === 'enemy' ? 'enemy' : 'player',
+    );
+    this.enemyBase = new BaseEntity(
+      this, 'enemy', ENEMY_BASE_X, GROUND_Y + 2, this.pvp ? 100 : difficultyConfig.enemyBaseHp,
+      this.pvp ? 'player' : 'enemy', this.pvp && this.localTeam === 'enemy' ? 'player' : 'enemy',
+    );
     this.createCamera();
     this.createHud();
     this.createInputs();
     this.events.on('battle-message', this.onBattleMessage, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
-    this.hud.message(`${difficultyConfig.label} 난이도 전투가 시작되었습니다.`);
-    this.rankedRunPromise = RankService.startRun(this.difficulty);
+    if (this.pvp) {
+      this.hud.message(`${this.pvp.isHost ? '왼쪽' : '오른쪽'} 진영 · ${this.pvp.opponentLoginId}님과의 전투가 시작되었습니다.`);
+      void this.pollPvpEvents();
+      this.pvpPollTimer = window.setInterval(() => void this.pollPvpEvents(), 350);
+    } else {
+      this.hud.message(`${difficultyConfig.label} 난이도 전투가 시작되었습니다.`);
+      this.rankedRunPromise = RankService.startRun(this.difficulty);
+    }
   }
 
   update(_time: number, delta: number): void {
@@ -86,7 +110,7 @@ export class GameScene extends Phaser.Scene {
     this.playerUnits.forEach((unit) => unit.updateStatus(now));
     this.enemyUnits.forEach((unit) => unit.updateStatus(now));
     this.economy.update(dt);
-    this.ai.update(dt, elapsed, (kind) => this.spawnUnit(kind, 'enemy'));
+    if (!this.pvp) this.ai.update(dt, elapsed, (kind) => this.spawnUnit(kind, 'enemy'));
     this.updateCamera(dt);
 
     this.movement.update(this.playerUnits, this.enemyUnits, dt, now);
@@ -94,11 +118,11 @@ export class GameScene extends Phaser.Scene {
     this.combat.update(this.playerUnits, this.enemyUnits, this.enemyBase, now);
     this.combat.update(this.enemyUnits, this.playerUnits, this.playerBase, now);
     this.payBountiesAndRemoveDead();
-    this.applyEnemyBaseSupply();
+    if (!this.pvp) this.applyEnemyBaseSupply();
     this.updateHud(elapsed);
 
-    if (this.enemyBase.hp <= 0) this.finish(true, elapsed);
-    else if (this.playerBase.hp <= 0) this.finish(false, elapsed);
+    if (this.enemyBase.hp <= 0) this.finish(this.localTeam === 'player', elapsed);
+    else if (this.playerBase.hp <= 0) this.finish(this.localTeam === 'enemy', elapsed);
   }
 
   private createBattlefield(): void {
@@ -120,7 +144,8 @@ export class GameScene extends Phaser.Scene {
     const camera = this.cameras.main;
     camera.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
     camera.setZoom(.9);
-    camera.scrollX = Math.max(0, 620 - camera.width / (2 * camera.zoom));
+    const cameraCenter = this.localTeam === 'enemy' ? ENEMY_BASE_X - 440 : 620;
+    camera.scrollX = Math.max(0, cameraCenter - camera.width / (2 * camera.zoom));
     this.alignCameraToGround();
     camera.setRoundPixels(true);
     this.scale.on(Phaser.Scale.Events.RESIZE, this.alignCameraToGround, this);
@@ -176,7 +201,7 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  private spawnFromSlot(slot: ProductionSlot): void {
+  private async spawnFromSlot(slot: ProductionSlot): Promise<void> {
     const kind = slot === 'special' ? this.progress.special : this.progress[slot];
     if (!kind) { this.hud.message('먼저 스페셜 계열을 해금하세요.'); return; }
     const definition = UNITS[kind];
@@ -185,15 +210,63 @@ export class GameScene extends Phaser.Scene {
       return;
     }
     if (!this.economy.spend(definition.cost)) { this.hud.message(`${definition.name} 생산에 ${definition.cost}G가 필요합니다.`); return; }
-    this.spawnUnit(kind, 'player');
+    if (this.pvp) {
+      try {
+        const event = await PvpRoomService.sendSpawn(this.pvp.roomId, kind);
+        if (this.finished || !this.scene.isActive()) return;
+        this.applyPvpSpawnEvent(event);
+      } catch (error) {
+        this.economy.reward(definition.cost);
+        this.hud.message(this.getNetworkError(error));
+        return;
+      }
+    } else {
+      this.spawnUnit(kind, 'player');
+    }
     if (definition.eliteCooldown) this.specialReadyAt = this.time.now + definition.eliteCooldown * 1000;
     this.hud.message(`${definition.name}을(를) 소환했습니다.`);
   }
 
   private spawnUnit(kind: UnitKind, team: 'player' | 'enemy'): void {
     const x = team === 'player' ? PLAYER_BASE_X + 185 : ENEMY_BASE_X - 185;
-    const unit = new CombatUnit(this, UNITS[kind], team, x, GROUND_Y + 2);
+    const displayTeam: Team = this.pvp ? (team === this.localTeam ? 'player' : 'enemy') : team;
+    const unit = new CombatUnit(this, UNITS[kind], team, x, GROUND_Y + 2, displayTeam);
     (team === 'player' ? this.playerUnits : this.enemyUnits).push(unit);
+  }
+
+  private async pollPvpEvents(): Promise<void> {
+    if (!this.pvp || this.pvpPolling || this.finished) return;
+    this.pvpPolling = true;
+    try {
+      const events = await PvpRoomService.getSpawnEvents(this.pvp.roomId, this.lastPvpEventId);
+      events.forEach((event) => {
+        this.lastPvpEventId = Math.max(this.lastPvpEventId, event.id);
+        this.applyPvpSpawnEvent(event);
+      });
+    } catch (error) {
+      this.hud?.message(this.getNetworkError(error));
+    } finally {
+      this.pvpPolling = false;
+    }
+  }
+
+  private applyPvpSpawnEvent(event: Awaited<ReturnType<typeof PvpRoomService.sendSpawn>>): void {
+    if (!this.pvp || this.appliedPvpEvents.has(event.id)) return;
+    if (event.user_id !== this.pvp.hostUserId && event.user_id !== this.pvp.guestUserId) return;
+    if (!(event.unit_kind in UNITS)) return;
+    this.appliedPvpEvents.add(event.id);
+    const team: Team = event.user_id === this.pvp.hostUserId ? 'player' : 'enemy';
+    // 서버 생성 시각 + 1초에 양쪽이 함께 생성해 폴링 왕복 시간 차이를 흡수한다.
+    const scheduledAt = new Date(event.created_at).getTime() + 1000;
+    const delay = Number.isFinite(scheduledAt) ? Math.max(0, scheduledAt - Date.now()) : 0;
+    this.time.delayedCall(delay, () => {
+      if (!this.finished && this.scene.isActive()) this.spawnUnit(event.unit_kind, team);
+    });
+  }
+
+  private getNetworkError(error: unknown): string {
+    if (error && typeof error === 'object' && 'message' in error) return String(error.message);
+    return '전투 동기화에 실패했습니다.';
   }
 
   private openPromotion(mode: PromotionMode): void {
@@ -271,14 +344,18 @@ export class GameScene extends Phaser.Scene {
     this.playerUnits.forEach((unit) => {
       if (!unit.alive && !unit.bountyPaid) {
         unit.bountyPaid = true;
-        this.ai.economy.reward(Math.max(1, Math.floor(unit.definition.cost * aiRate)));
+        if (this.pvp) {
+          if (this.localTeam === 'enemy') this.economy.reward(Math.max(1, Math.floor(unit.definition.cost * .5)));
+        } else {
+          this.ai.economy.reward(Math.max(1, Math.floor(unit.definition.cost * aiRate)));
+        }
         this.time.delayedCall(450, () => unit.destroy());
       }
     });
     this.enemyUnits.forEach((unit) => {
       if (!unit.alive && !unit.bountyPaid) {
         unit.bountyPaid = true;
-        this.economy.reward(Math.max(1, Math.floor(unit.definition.cost * .5)));
+        if (!this.pvp || this.localTeam === 'player') this.economy.reward(Math.max(1, Math.floor(unit.definition.cost * .5)));
         this.time.delayedCall(450, () => unit.destroy());
       }
     });
@@ -296,10 +373,12 @@ export class GameScene extends Phaser.Scene {
 
   private updateHud(elapsedSeconds: number): void {
     const special = this.progress.special ? UNITS[this.progress.special] : null;
+    const allyBase = this.localTeam === 'player' ? this.playerBase : this.enemyBase;
+    const opponentBase = this.localTeam === 'player' ? this.enemyBase : this.playerBase;
     const state: HudState = {
       gold: this.economy.gold,
-      playerBaseHp: this.playerBase.hp, playerBaseMaxHp: this.playerBase.maxHp,
-      enemyBaseHp: this.enemyBase.hp, enemyBaseMaxHp: this.enemyBase.maxHp,
+      playerBaseHp: allyBase.hp, playerBaseMaxHp: allyBase.maxHp,
+      enemyBaseHp: opponentBase.hp, enemyBaseMaxHp: opponentBase.maxHp,
       difficulty: this.difficulty, elapsedSeconds,
       production: { infantry: UNITS[this.progress.infantry], archer: UNITS[this.progress.archer], cavalry: UNITS[this.progress.cavalry], special },
       specialCooldown: Math.max(0, (this.specialReadyAt - this.time.now) / 1000),
@@ -353,7 +432,16 @@ export class GameScene extends Phaser.Scene {
     if (this.finished) return;
     this.finished = true;
     this.closePromotion();
+    if (this.pvpPollTimer !== null) window.clearInterval(this.pvpPollTimer);
+    this.pvpPollTimer = null;
     this.time.delayedCall(700, () => {
+      if (this.pvp) {
+        this.scene.start('ResultScene', {
+          victory, elapsedSeconds, difficulty: this.difficulty, isPvp: true,
+          unitLoadout: [this.progress.infantry, this.progress.archer, this.progress.cavalry, ...(this.progress.special ? [this.progress.special] : [])],
+        });
+        return;
+      }
       const rankedRun = Promise.race([
         this.rankedRunPromise,
         new Promise<null>((resolve) => window.setTimeout(() => resolve(null), 1200)),
@@ -373,6 +461,8 @@ export class GameScene extends Phaser.Scene {
   private onBattleMessage(message: string): void { this.hud.message(message); }
 
   private shutdown(): void {
+    if (this.pvpPollTimer !== null) window.clearInterval(this.pvpPollTimer);
+    this.pvpPollTimer = null;
     this.events.off('battle-message', this.onBattleMessage, this);
     this.combat?.destroy();
     this.hud?.destroy();

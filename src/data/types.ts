@@ -38,11 +38,19 @@ export interface DifficultyConfig {
 
 export interface GameLaunchData {
   difficulty: Difficulty;
+  pvp?: {
+    roomId: string;
+    isHost: boolean;
+    hostUserId: string;
+    guestUserId: string;
+    opponentLoginId: string;
+  };
 }
 
 export interface GameResultData extends GameLaunchData {
   victory: boolean;
   elapsedSeconds: number;
   rankedRunId?: string;
+  isPvp?: boolean;
   unitLoadout: UnitKind[];
 }

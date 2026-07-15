@@ -21,14 +21,18 @@ export class ResultScene extends Phaser.Scene {
     }).setOrigin(.5);
     const minutes = Math.floor(this.result.elapsedSeconds / 60);
     const seconds = Math.floor(this.result.elapsedSeconds % 60).toString().padStart(2, '0');
-    this.add.text(width / 2, height * .46, `${DIFFICULTIES[this.result.difficulty].label} · 전투 시간 ${minutes}:${seconds}`, {
+    const modeLabel = this.result.isPvp ? '1대1 전투' : DIFFICULTIES[this.result.difficulty].label;
+    this.add.text(width / 2, height * .46, `${modeLabel} · 전투 시간 ${minutes}:${seconds}`, {
       fontFamily: 'Pretendard, sans-serif', fontSize: '22px', color: '#f8efd5',
     }).setOrigin(.5);
     const actionsY = this.result.victory ? height * .72 : height * .62;
-    this.createButton(width / 2 - 105, actionsY, '다시 전투', () => this.scene.start('GameScene', { difficulty: this.result.difficulty }));
+    this.createButton(width / 2 - 105, actionsY, this.result.isPvp ? '1대1 로비' : '다시 전투', () => {
+      if (this.result.isPvp) this.scene.start('OnlineLobbyScene');
+      else this.scene.start('GameScene', { difficulty: this.result.difficulty });
+    });
     this.createButton(width / 2 + 105, actionsY, '시작 화면', () => this.scene.start('StartScene'));
-    if (this.result.victory) this.createRankSubmission(width / 2, height * .59);
-    this.input.keyboard?.on('keydown-R', () => this.scene.start('GameScene', { difficulty: this.result.difficulty }));
+    if (this.result.victory && !this.result.isPvp) this.createRankSubmission(width / 2, height * .59);
+    this.input.keyboard?.on('keydown-R', () => this.scene.start(this.result.isPvp ? 'OnlineLobbyScene' : 'GameScene', this.result.isPvp ? undefined : { difficulty: this.result.difficulty }));
   }
 
   private createRankSubmission(x: number, y: number): void {

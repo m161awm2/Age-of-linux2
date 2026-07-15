@@ -38,16 +38,18 @@ export class CombatUnit extends Phaser.GameObjects.Container {
 
   private textureKey: string;
   private spriteLayout: SpriteAsset;
+  private readonly displayTeam: Team;
   private unitState: UnitState = 'idle';
   private readonly chargeFx: Phaser.GameObjects.Graphics;
   private readonly sprite: Phaser.GameObjects.Sprite;
   private readonly hpBar: Phaser.GameObjects.Graphics;
   private readonly statusText: Phaser.GameObjects.Text;
 
-  constructor(scene: Phaser.Scene, definition: UnitDefinition, team: Team, x: number, y: number) {
+  constructor(scene: Phaser.Scene, definition: UnitDefinition, team: Team, x: number, y: number, displayTeam: Team = team) {
     super(scene, x, y);
     this.definition = definition;
     this.team = team;
+    this.displayTeam = displayTeam;
     this.hp = definition.hp;
     this.shieldHp = definition.kind === 'shieldGuard' ? 8 : 0;
     this.textureKey = definition.texture;
@@ -154,7 +156,7 @@ export class CombatUnit extends Phaser.GameObjects.Container {
       this.berserkTriggered = true;
       this.berserkUntil = now + 7000;
       this.setVisualTexture('vikingBerserk');
-      this.scene.events.emit('battle-message', `${this.team === 'player' ? '아군' : '적군'} 바이킹이 광폭화했습니다!`);
+      this.scene.events.emit('battle-message', `${this.displayTeam === 'player' ? '아군' : '적군'} 바이킹이 광폭화했습니다!`);
     }
     this.drawHealth(now);
     if (!this.alive) this.die();
@@ -269,7 +271,7 @@ export class CombatUnit extends Phaser.GameObjects.Container {
   private drawHealth(now: number): void {
     const width = 70;
     const ratio = Phaser.Math.Clamp(this.hp / this.definition.hp, 0, 1);
-    const hpColor = this.team === 'player' ? 0x54dda0 : 0xf16b65;
+    const hpColor = this.displayTeam === 'player' ? 0x54dda0 : 0xf16b65;
     this.hpBar.clear();
     this.hpBar.fillStyle(0x17130f, .85).fillRoundedRect(-width / 2 - 2, -112, width + 4, 10, 3);
     this.hpBar.fillStyle(hpColor).fillRoundedRect(-width / 2, -110, width * ratio, 6, 2);

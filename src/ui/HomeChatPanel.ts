@@ -77,10 +77,12 @@ export class HomeChatPanel {
     }
     messages.forEach((item) => {
       const article = document.createElement('article');
-      article.className = item.is_me ? 'chat-message mine' : 'chat-message';
+      const featured = ['m161awm', 'admin'].includes(item.login_id.toLowerCase());
+      article.className = ['chat-message', item.is_me ? 'mine' : '', featured ? 'featured' : ''].filter(Boolean).join(' ');
       const meta = document.createElement('div');
       const author = document.createElement('strong');
       author.textContent = item.is_me ? `${item.login_id} (나)` : item.login_id;
+      if (featured) author.dataset.badge = 'ADMIN';
       const time = document.createElement('time');
       time.dateTime = item.created_at;
       time.textContent = this.formatTime(item.created_at);

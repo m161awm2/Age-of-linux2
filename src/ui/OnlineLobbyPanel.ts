@@ -8,10 +8,12 @@ export class OnlineLobbyPanel {
   private readonly status: HTMLParagraphElement;
   private readonly joinInput: HTMLInputElement;
   private refreshTimer: number | null = null;
+  private battleTimer: number | null = null;
   private room: PvpRoom | null = null;
   private busy = false;
+  private battleStarting = false;
 
-  constructor(private readonly onBack: () => void) {
+  constructor(private readonly onBack: () => void, private readonly onBattle: (room: PvpRoom) => void) {
     this.root = document.createElement('div');
     this.root.className = 'online-lobby-screen';
     this.root.innerHTML = `
@@ -71,6 +73,7 @@ export class OnlineLobbyPanel {
 
   destroy(): void {
     this.stopRefreshing();
+    if (this.battleTimer !== null) window.clearTimeout(this.battleTimer);
     this.root.remove();
   }
 
@@ -133,9 +136,20 @@ export class OnlineLobbyPanel {
     this.root.querySelector<HTMLElement>('.room-guest')!.textContent = room.guest_login_id || '빈자리';
     this.root.querySelector<HTMLElement>('.room-guest-state')!.textContent = room.guest_user_id ? '참가 완료' : '입장 대기';
     this.root.querySelector<HTMLElement>('.room-waiting')!.textContent = room.guest_user_id
-      ? '상대가 입장했습니다. 1대1 전투 동기화를 준비하고 있습니다.'
+      ? '상대가 입장했습니다. 전투를 시작합니다…'
       : '상대의 입장을 기다리는 중…';
     this.roomView.classList.toggle('room-full', Boolean(room.guest_user_id));
+    if (room.status === 'full' && room.guest_user_id) this.scheduleBattle(room);
+  }
+
+  private scheduleBattle(room: PvpRoom): void {
+    if (this.battleStarting) return;
+    this.battleStarting = true;
+    this.stopRefreshing();
+    this.battleTimer = window.setTimeout(() => {
+      this.battleTimer = null;
+      this.onBattle(room);
+    }, 900);
   }
 
   private async refreshRoom(): Promise<void> {
