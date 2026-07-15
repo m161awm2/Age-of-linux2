@@ -3,6 +3,8 @@ import type { Team } from '../data/types';
 import type { CombatUnit } from '../entities/CombatUnit';
 
 export class MovementSystem {
+  private readonly allyBlocked = new WeakSet<CombatUnit>();
+
   update(
     units: CombatUnit[],
     enemies: CombatUnit[],
@@ -20,7 +22,15 @@ export class MovementSystem {
       const allyAhead = index > 0 ? alive[index - 1] : undefined;
       const enemyAhead = liveEnemies[0];
       const direction = unit.team === 'player' ? 1 : -1;
-      const blockedByAlly = allyAhead ? direction * (allyAhead.x - unit.x) < ALLY_SPACING : false;
+      const allyGap = allyAhead ? direction * (allyAhead.x - unit.x) : Number.POSITIVE_INFINITY;
+      // 간격 경계에서 매 프레임 move/idle이 뒤집히면 서로 다른 자세가 반복 재시작되어
+      // 유닛이 위아래로 튀는 것처럼 보인다. 정지/출발 기준을 분리해 상태 떨림을 막는다.
+      const spacingBuffer = 6;
+      const blockedByAlly = allyAhead
+        ? allyGap < ALLY_SPACING + (this.allyBlocked.has(unit) ? spacingBuffer : -spacingBuffer)
+        : false;
+      if (blockedByAlly) this.allyBlocked.add(unit);
+      else this.allyBlocked.delete(unit);
       const blockedByEnemy = enemyAhead ? Math.abs(enemyAhead.x - unit.x) < ENEMY_STOP_DISTANCE : false;
       const baseX = unit.team === 'player' ? ENEMY_BASE_X : PLAYER_BASE_X;
       const blockedByBase = Math.abs(unit.x - baseX) <= BASE_STOP_DISTANCE;
