@@ -92,40 +92,43 @@ export class TutorialScene extends Phaser.Scene {
     const { width, height } = this.scale;
     const content = TUTORIAL_PAGES[this.page];
     if (!content) return;
+    const mobileLandscape = height < 450;
     const compact = height < 620;
-    const cardTop = compact ? 78 : 90;
-    const cardBottom = height - (compact ? 75 : 92);
+    const cardTop = mobileLandscape ? 66 : compact ? 78 : 90;
+    const cardBottom = height - (mobileLandscape ? 58 : compact ? 75 : 92);
     const cardHeight = cardBottom - cardTop;
     const card = this.add.graphics()
       .fillGradientStyle(0x1b3025, 0x17291f, 0x0e1c15, 0x0b1712, .98)
       .fillRoundedRect(64, cardTop, width - 128, cardHeight, 16)
       .lineStyle(1, 0x71825b, .8).strokeRoundedRect(64, cardTop, width - 128, cardHeight, 16);
-    const icon = this.add.text(width / 2, cardTop + (compact ? 35 : 47), content.icon, {
-      fontFamily: 'Georgia, Apple Color Emoji, sans-serif', fontSize: compact ? '35px' : '46px', color: '#e8cf70',
+    const icon = this.add.text(width / 2, cardTop + (mobileLandscape ? 20 : compact ? 35 : 47), content.icon, {
+      fontFamily: 'Georgia, Apple Color Emoji, sans-serif', fontSize: mobileLandscape ? '22px' : compact ? '35px' : '46px', color: '#e8cf70',
     }).setOrigin(.5);
-    const title = this.add.text(width / 2, cardTop + (compact ? 72 : 98), content.title, {
-      fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: compact ? '22px' : '28px', fontStyle: 'bold',
+    const title = this.add.text(width / 2, cardTop + (mobileLandscape ? 43 : compact ? 72 : 98), content.title, {
+      fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: mobileLandscape ? '16px' : compact ? '22px' : '28px', fontStyle: 'bold',
       color: '#fff1b8', stroke: '#111912', strokeThickness: 3,
     }).setOrigin(.5);
-    const bodyTop = cardTop + (compact ? 103 : 140);
+    const bodyTop = cardTop + (mobileLandscape ? 65 : compact ? 103 : 140);
     const body = this.add.text(width / 2, bodyTop, content.text, {
-      fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: `${compact ? 13 : Math.min(17, width / 62)}px`,
-      color: '#e3e5d8', align: 'center', lineSpacing: compact ? 3 : 7,
-      wordWrap: { width: width - 200 },
+      fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: `${mobileLandscape ? 11 : compact ? 13 : Math.min(17, width / 62)}px`,
+      color: '#e3e5d8', align: 'center', lineSpacing: mobileLandscape ? 1 : compact ? 3 : 7,
+      wordWrap: { width: width - (mobileLandscape ? 150 : 200) },
     }).setOrigin(.5, 0);
-    const tip = this.add.text(width / 2, cardBottom - (compact ? 36 : 44), `TIP · ${content.tip}`, {
-      fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: compact ? '11px' : '13px',
+    const tip = this.add.text(width / 2, cardBottom - (mobileLandscape ? 20 : compact ? 36 : 44), `TIP · ${content.tip}`, {
+      fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: mobileLandscape ? '9px' : compact ? '11px' : '13px',
       color: '#c9d990', align: 'center', backgroundColor: '#0c1712cc', padding: { x: 14, y: 8 },
       wordWrap: { width: width - 220 },
     }).setOrigin(.5);
-    const counter = this.add.text(width / 2, height - (compact ? 52 : 63), `${this.page + 1} / ${TUTORIAL_PAGES.length}`, {
+    const counter = this.add.text(width / 2, height - (mobileLandscape ? 31 : compact ? 52 : 63), `${this.page + 1} / ${TUTORIAL_PAGES.length}`, {
       fontFamily: 'monospace', fontSize: '13px', fontStyle: 'bold', color: '#b8ae7c',
     }).setOrigin(.5);
     this.pageObjects.push(card, icon, title, body, tip, counter);
 
-    if (this.page > 0) this.pageObjects.push(...this.createButton(116, height - (compact ? 49 : 59), 130, 42, '← 이전', () => this.changePage(-1)));
+    const navigationY = height - (mobileLandscape ? 29 : compact ? 49 : 59);
+    const navigationHeight = mobileLandscape ? 34 : 42;
+    if (this.page > 0) this.pageObjects.push(...this.createButton(mobileLandscape ? 88 : 116, navigationY, mobileLandscape ? 104 : 130, navigationHeight, '← 이전', () => this.changePage(-1)));
     const lastPage = this.page === TUTORIAL_PAGES.length - 1;
-    this.pageObjects.push(...this.createButton(width - 116, height - (compact ? 49 : 59), lastPage ? 170 : 130, 42, lastPage ? '튜토리얼 완료' : '다음 →', () => this.next(), lastPage));
+    this.pageObjects.push(...this.createButton(width - (mobileLandscape ? 88 : 116), navigationY, lastPage ? (mobileLandscape ? 142 : 170) : (mobileLandscape ? 104 : 130), navigationHeight, lastPage ? '튜토리얼 완료' : '다음 →', () => this.next(), lastPage));
   }
 
   private next(): void {

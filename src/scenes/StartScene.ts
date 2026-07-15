@@ -18,6 +18,7 @@ export class StartScene extends Phaser.Scene {
 
   create(): void {
     const { width, height } = this.scale;
+    const mobileLandscape = height < 450;
     const settingsPanel = new SettingsPanel();
     AudioService.prepare(this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => settingsPanel.destroy());
@@ -34,25 +35,38 @@ export class StartScene extends Phaser.Scene {
     const chatPanel = new HomeChatPanel();
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => chatPanel.destroy());
 
-    const logo = this.add.image(width / 2, Math.max(130, height * .23), 'logo')
-      .setDisplaySize(Math.min(760, width * .75), Math.min(254, width * .25));
+    const logoWidth = mobileLandscape ? Math.min(330, width * .5) : Math.min(760, width * .75);
+    const logoHeight = mobileLandscape ? Math.min(108, logoWidth / 3) : Math.min(254, width * .25);
+    const logo = this.add.image(width / 2, mobileLandscape ? 58 : Math.max(130, height * .23), 'logo')
+      .setDisplaySize(logoWidth, logoHeight);
     this.add.text(width / 2, logo.y + logo.displayHeight * .48, '전직의 시대 · 브라우저 전장', {
-      fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: `${Math.min(25, width / 45)}px`,
+      fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: `${mobileLandscape ? 11 : Math.min(25, width / 45)}px`,
       fontStyle: 'bold', color: '#f4e5a6', stroke: '#1d2116', strokeThickness: 5,
     }).setOrigin(.5);
 
     const difficultyModal = this.createDifficultyModal(width, height);
     const compact = height < 700;
-    const menuWidth = Math.min(250, width * .3);
-    const menuHeight = compact ? 42 : 54;
-    const menuGap = compact ? 6 : 8;
-    const menuX = 24 + menuWidth / 2;
-    const firstMenuY = compact ? Math.max(225, height * .41) : Math.max(350, height * .5);
-    this.createMenuButton(menuX, firstMenuY, menuWidth, menuHeight, '▶', '게임 시작', 0xb8d56f, () => difficultyModal.setVisible(true));
-    this.createMenuButton(menuX, firstMenuY + menuHeight + menuGap, menuWidth, menuHeight, '⚙', '설정', 0xe0c36b, () => settingsPanel.open());
-    this.createMenuButton(menuX, firstMenuY + (menuHeight + menuGap) * 2, menuWidth, menuHeight, '▤', '도감', 0x87c9b0, () => this.scene.start('CodexScene'));
-    this.createMenuButton(menuX, firstMenuY + (menuHeight + menuGap) * 3, menuWidth, menuHeight, '?', '튜토리얼', 0x9db7e0, () => this.scene.start('TutorialScene', { forced: false }));
-    this.createMenuButton(menuX, firstMenuY + (menuHeight + menuGap) * 4, menuWidth, menuHeight, '♛', '랭크', 0xd7b564, () => this.scene.start('RankScene'));
+    const menuWidth = mobileLandscape ? Math.min(160, (width * .58 - 42) / 2) : Math.min(250, width * .3);
+    const menuHeight = mobileLandscape ? 38 : compact ? 42 : 54;
+    const menuGap = mobileLandscape ? 6 : compact ? 6 : 8;
+    const menuX = 20 + menuWidth / 2;
+    const firstMenuY = mobileLandscape ? 142 : compact ? Math.max(225, height * .41) : Math.max(350, height * .5);
+    const menuItems: Array<[string, string, number, () => void]> = [
+      ['▶', '게임 시작', 0xb8d56f, () => difficultyModal.setVisible(true)],
+      ['⚙', '설정', 0xe0c36b, () => settingsPanel.open()],
+      ['▤', '도감', 0x87c9b0, () => this.scene.start('CodexScene')],
+      ['?', '튜토리얼', 0x9db7e0, () => this.scene.start('TutorialScene', { forced: false })],
+      ['♛', '랭크', 0xd7b564, () => this.scene.start('RankScene')],
+    ];
+    menuItems.forEach(([icon, label, accent, action], index) => {
+      const column = mobileLandscape ? index % 2 : 0;
+      const row = mobileLandscape ? Math.floor(index / 2) : index;
+      this.createMenuButton(
+        menuX + column * (menuWidth + menuGap),
+        firstMenuY + row * (menuHeight + menuGap),
+        menuWidth, menuHeight, icon, label, accent, action,
+      );
+    });
 
     if (!compact) {
       this.add.text(width / 2, height - 24, '유닛 생산 1·2·3·4  ·  전직 5·6  ·  카메라 A/D 또는 ←/→  ·  확대 Q/E 또는 휠', {

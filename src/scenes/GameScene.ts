@@ -40,6 +40,7 @@ export class GameScene extends Phaser.Scene {
   private lastPromotionGold = -1;
   private cursors?: Phaser.Types.Input.Keyboard.CursorKeys;
   private cameraKeys?: Record<'left' | 'right' | 'zoomIn' | 'zoomOut', Phaser.Input.Keyboard.Key>;
+  private pinchDistance = 0;
 
   constructor() { super('GameScene'); }
 
@@ -56,6 +57,7 @@ export class GameScene extends Phaser.Scene {
     this.promotionOptions = [];
     this.specialReadyAt = 0;
     this.lastPromotionGold = -1;
+    this.pinchDistance = 0;
   }
 
   create(): void {
@@ -122,11 +124,22 @@ export class GameScene extends Phaser.Scene {
     this.alignCameraToGround();
     camera.setRoundPixels(true);
     this.scale.on(Phaser.Scale.Events.RESIZE, this.alignCameraToGround, this);
+    this.input.addPointer(1);
     this.input.on('wheel', (_pointer: Phaser.Input.Pointer, _objects: unknown[], _dx: number, dy: number) => this.zoomCamera(dy < 0 ? .08 : -.08));
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
+      const first = this.input.pointer1;
+      const second = this.input.pointer2;
+      if (first.isDown && second.isDown) {
+        const distance = Phaser.Math.Distance.Between(first.x, first.y, second.x, second.y);
+        if (this.pinchDistance > 0) this.zoomCamera((distance - this.pinchDistance) / 280);
+        this.pinchDistance = distance;
+        return;
+      }
+      this.pinchDistance = 0;
       if (!pointer.isDown) return;
       camera.scrollX -= (pointer.x - pointer.prevPosition.x) / camera.zoom;
     });
+    this.input.on('pointerup', () => { this.pinchDistance = 0; });
   }
 
   private createHud(): void {
@@ -326,7 +339,8 @@ export class GameScene extends Phaser.Scene {
     // 지면의 깨진 하단이 보이지 않도록 여백을 두고, 축소할수록 HUD 위로 더 들어 올린다.
     const zoomOutRatio = Phaser.Math.Clamp((1.25 - zoom) / .6, 0, 1);
     const bottomClearance = 136 + zoomOutRatio * 60;
-    return Math.max(320, this.scale.height - bottomClearance);
+    const minimumGround = this.scale.height < 450 ? Math.max(210, this.scale.height - 62) : 320;
+    return Math.max(minimumGround, this.scale.height - bottomClearance);
   }
 
   private alignCameraToGround(): void {

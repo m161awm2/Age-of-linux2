@@ -16,6 +16,15 @@ body { min-width: 720px; min-height: 480px; background: #0c1714; }
 canvas { display: block; }
 button { font: inherit; }
 
+#orientation-lock { position: fixed; inset: 0; z-index: 20000; display: none; place-items: center; padding: 24px; color: #f3edcf; background: radial-gradient(circle at center, #21392c, #07110d 70%); }
+#orientation-lock.visible { display: grid; }
+.orientation-card { width: min(420px, 88vw); text-align: center; }
+.rotate-phone { width: 54px; height: 82px; margin: 0 auto 22px; display: grid; place-items: center; border: 3px solid #d8cb85; border-radius: 10px; color: #d8cb85; font-size: 42px; transform: rotate(90deg); animation: rotate-hint 1.8s ease-in-out infinite; }
+.orientation-card strong { display: block; color: #eef1b8; font-size: 23px; }
+.orientation-card p { margin: 12px 0 20px; color: #aebbb0; font-size: 13px; }
+.orientation-card button { min-width: 170px; height: 44px; border: 1px solid #becf75; border-radius: 9px; color: #fff5d0; background: #405b35; font-weight: 800; }
+@keyframes rotate-hint { 0%, 100% { transform: rotate(90deg) scale(1); } 50% { transform: rotate(75deg) scale(1.06); } }
+
 #loading-screen {
   --loading-progress: 0%;
   position: fixed; inset: 0; z-index: 9999; display: grid; place-items: center; overflow: hidden;
@@ -138,6 +147,7 @@ kbd {
 .home-chat > header { display: flex; justify-content: space-between; align-items: center; padding: 14px 15px 8px; }
 .home-chat > header strong { color: #edf0b8; font: 900 17px/1 Georgia, Pretendard, serif; }
 .chat-live { padding: 4px 7px; border: 1px solid rgba(141, 208, 123, .35); border-radius: 99px; color: #a8e392; background: rgba(51, 105, 49, .28); font: 800 9px/1 monospace; letter-spacing: .08em; }
+.chat-toggle { display: none; width: 30px; height: 28px; padding: 0; border: 1px solid #718160; border-radius: 7px; color: #ece3b6; background: #263c30; cursor: pointer; }
 .chat-description { margin: 0; padding: 0 15px 11px; border-bottom: 1px solid rgba(201, 188, 130, .18); color: #b8c3b5; font-size: 11px; }
 .chat-messages { min-height: 0; overflow-y: auto; padding: 10px; scrollbar-width: thin; scrollbar-color: #607151 transparent; }
 .chat-empty { margin: 30px 15px; color: #849187; font-size: 12px; line-height: 1.6; text-align: center; }
@@ -175,4 +185,65 @@ kbd {
   .hud-toast { top: 60px; }
   .home-chat { top: 58px; bottom: 14px; }
   .home-chat > header { padding-block: 10px 6px; }
+}
+
+.mobile-device body { min-width: 0; min-height: 0; touch-action: none; overscroll-behavior: none; }
+.mobile-device canvas { touch-action: none; }
+
+@media (max-height: 450px) and (orientation: landscape) {
+  .auth-screen { padding: 8px; }
+  .auth-card { width: min(430px, 80vw); padding: 15px 22px; border-radius: 14px; }
+  .auth-kicker { margin-bottom: 3px; }
+  .auth-card h1 { font-size: 23px; }
+  .auth-description { margin: 4px 0 9px; font-size: 11px; }
+  .auth-tabs { margin-bottom: 9px; padding: 3px; }
+  .auth-tabs button { height: 30px; }
+  .auth-form { grid-template-columns: 1fr 1fr; gap: 7px 10px; }
+  .auth-form label { gap: 3px; }
+  .auth-form label span { font-size: 10px; }
+  .auth-form input { height: 36px; font-size: 12px; }
+  .auth-status { grid-column: 1 / -1; min-height: 16px; font-size: 10px; }
+  .auth-submit { grid-column: 1 / -1; height: 37px; }
+  .auth-card > small { display: none; }
+
+  .settings-card { max-height: 90vh; padding: 18px; }
+  .settings-card h2 { margin-bottom: 12px; font-size: 24px; }
+  .volume-setting { padding: 11px; }
+
+  .mobile-device .home-chat { top: auto; right: 10px; bottom: 9px; width: 278px; height: 43px; display: block; border-radius: 11px; transition: height .18s ease; }
+  .mobile-device .home-chat.expanded { top: 48px; bottom: 9px; height: auto; display: grid; }
+  .mobile-device .home-chat > header { height: 42px; padding: 7px 9px; }
+  .mobile-device .home-chat > header strong { font-size: 14px; }
+  .mobile-device .home-chat:not(.expanded) > :not(header) { display: none; }
+  .mobile-device .chat-live { margin-left: auto; margin-right: 6px; }
+  .mobile-device .chat-toggle { display: block; }
+
+  .mobile-device .hud-top { min-height: 45px; grid-template-columns: 82px minmax(0, 1fr) 48px; gap: 5px; padding: 4px 7px; }
+  .mobile-device .hud-brand { display: none; }
+  .mobile-device .hud-resource { padding: 6px 7px; font-size: 11px; }
+  .mobile-device .hud-base-status { gap: 4px; font-size: 9px; }
+  .mobile-device .hud-base-status .versus { font-size: 8px; }
+  .mobile-device .hud-time { font-size: 12px; }
+  .mobile-device .hud-bottom { gap: 4px; padding: 4px 5px 5px; }
+  .mobile-device .production-panel { flex: 1; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3px; }
+  .mobile-device .promotion-buttons { flex: 0 0 62px; grid-template-columns: 62px; gap: 3px; }
+  .mobile-device .unit-button, .mobile-device .hud-action { min-height: 45px; border-radius: 7px; }
+  .mobile-device .unit-button { grid-template-columns: 39px minmax(0, 1fr); gap: 2px; padding: 2px; }
+  .mobile-device .unit-portrait { width: 39px; height: 39px; }
+  .mobile-device .unit-portrait img { width: 156px; height: 117px; }
+  .mobile-device .unit-key { top: 2px; left: 2px; width: 16px; height: 16px; font-size: 9px; }
+  .mobile-device .unit-name { margin: 0; font-size: 9px; }
+  .mobile-device .unit-cost { font-size: 8px; }
+  .mobile-device .hud-action { padding: 3px; font-size: 9px; }
+  .mobile-device .hud-action kbd { min-width: 16px; height: 17px; padding: 0 3px; font-size: 8px; }
+  .mobile-device .camera-controls { top: 50px; right: 6px; grid-template-columns: repeat(2, 32px); gap: 3px; }
+  .mobile-device .camera-controls button { width: 32px; height: 29px; border-radius: 6px; }
+  .mobile-device .camera-controls .settings-button { width: 67px; font-size: 9px; }
+  .mobile-device .hud-toast { top: 48px; max-width: 64vw; padding: 6px 10px; font-size: 10px; }
+  .mobile-device .promotion-card { width: min(600px, 92vw); max-height: 88vh; overflow-y: auto; padding: 16px; }
+  .mobile-device .promotion-card h2 { font-size: 20px; }
+  .mobile-device .modal-help { margin: 4px 0 8px; font-size: 10px; }
+  .mobile-device .promotion-options { gap: 5px; }
+  .mobile-device .promotion-option { min-height: 43px; grid-template-columns: 27px 105px 1fr 43px; gap: 6px; padding: 5px 8px; font-size: 10px; }
+  .mobile-device .promotion-option span { font-size: 9px; }
 }

@@ -79,7 +79,7 @@ export class RankScene extends Phaser.Scene {
     const left = width / 2 - tableWidth / 2;
     const top = compact ? 126 : 132;
     const rowHeight = compact ? 52 : 58;
-    const rowsPerPage = Phaser.Math.Clamp(Math.floor((height - top - 72) / rowHeight), 4, 8);
+    const rowsPerPage = Phaser.Math.Clamp(Math.floor((height - top - 72) / rowHeight), 2, 8);
     const totalPages = Math.max(1, Math.ceil(this.entries.length / rowsPerPage));
     this.page = Phaser.Math.Clamp(this.page, 0, totalPages - 1);
     const visible = this.entries.slice(this.page * rowsPerPage, (this.page + 1) * rowsPerPage);

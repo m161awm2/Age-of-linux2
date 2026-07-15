@@ -8,6 +8,10 @@ import { CodexScene } from './scenes/CodexScene';
 import { TutorialScene } from './scenes/TutorialScene';
 import { RankScene } from './scenes/RankScene';
 import { AuthScene } from './scenes/AuthScene';
+import { DeviceService } from './services/DeviceService';
+
+const mobileDevice = DeviceService.isMobile();
+DeviceService.setupOrientationGuard();
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -18,7 +22,11 @@ const config: Phaser.Types.Core.GameConfig = {
   pixelArt: false,
   antialias: true,
   render: { roundPixels: true, powerPreference: 'high-performance' },
-  scale: { mode: Phaser.Scale.RESIZE, autoCenter: Phaser.Scale.CENTER_BOTH, min: { width: 720, height: 480 } },
+  scale: {
+    mode: Phaser.Scale.RESIZE,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+    min: mobileDevice ? { width: 568, height: 320 } : { width: 720, height: 480 },
+  },
   scene: [BootScene, AuthScene, StartScene, TutorialScene, CodexScene, RankScene, GameScene, ResultScene],
   input: { mouse: { preventDefaultWheel: true }, touch: { capture: true } },
 };

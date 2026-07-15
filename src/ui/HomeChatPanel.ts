@@ -17,7 +17,7 @@ export class HomeChatPanel {
     this.root.innerHTML = `
       <header>
         <strong>전장 팁 채팅</strong>
-        <span class="chat-live">LIVE</span>
+        <span class="chat-live">LIVE</span><button class="chat-toggle" type="button" aria-label="채팅 열기">⌃</button>
       </header>
       <p class="chat-description">팁 공유를 위한 채팅창입니다</p>
       <div class="chat-messages" role="log" aria-live="polite"></div>
@@ -32,6 +32,13 @@ export class HomeChatPanel {
     this.input = this.form.querySelector<HTMLInputElement>('input')!;
     this.submit = this.form.querySelector<HTMLButtonElement>('button')!;
     this.status = this.root.querySelector<HTMLParagraphElement>('.chat-status')!;
+    this.root.querySelector<HTMLButtonElement>('.chat-toggle')?.addEventListener('click', () => {
+      const expanded = this.root.classList.toggle('expanded');
+      const toggle = this.root.querySelector<HTMLButtonElement>('.chat-toggle')!;
+      toggle.textContent = expanded ? '⌄' : '⌃';
+      toggle.setAttribute('aria-label', expanded ? '채팅 접기' : '채팅 열기');
+      if (expanded) void this.refresh(true);
+    });
     this.form.addEventListener('submit', (event) => void this.handleSubmit(event));
     void this.refresh(true);
     this.refreshTimer = window.setInterval(() => void this.refresh(), 4000);

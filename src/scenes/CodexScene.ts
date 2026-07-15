@@ -13,6 +13,12 @@ const FAMILY_LABELS: Record<UnitFamily, string> = {
 const TIER_LABELS = ['기본 병종', '1차 전직', '2차 전직'] as const;
 const DESCRIPTION_PLACEHOLDER = 'unit-codex.json의 description 항목을 작성해 주세요.';
 
+const ALTERNATE_STATES: Partial<Record<UnitKind, { label: string; texture: string }>> = {
+  viking: { label: '광폭 모드', texture: 'vikingBerserk' },
+  shieldGuard: { label: '롱소드 모드', texture: 'shieldGuardBroken' },
+  dragoon: { label: '근접 모드', texture: 'dragoonMelee' },
+};
+
 export class CodexScene extends Phaser.Scene {
   private index = 0;
   private pageObjects: Phaser.GameObjects.GameObject[] = [];
@@ -51,18 +57,15 @@ export class CodexScene extends Phaser.Scene {
     this.pageObjects = [];
 
     const { width, height } = this.scale;
+    const mobileLandscape = height < 450;
     const definition = UNIT_LIST[this.index];
     if (!definition) return;
 
     const descriptionData = codexDescriptions as Record<UnitKind, { description: string }>;
     const description = descriptionData[definition.kind]?.description.trim() || DESCRIPTION_PLACEHOLDER;
-    const headerY = Math.max(84, height * .105);
-    const previewY = Phaser.Math.Clamp(height * .37, 214, 300);
-    const previewHeight = Phaser.Math.Clamp(height * .29, 150, 235);
-    const panelWidth = Math.min(220, (width - 150) / 3);
-    const gap = Math.min(24, width * .025);
-    const totalWidth = panelWidth * 3 + gap * 2;
-    const firstX = width / 2 - totalWidth / 2 + panelWidth / 2;
+    const headerY = mobileLandscape ? 73 : Math.max(84, height * .105);
+    const previewY = mobileLandscape ? 145 : Phaser.Math.Clamp(height * .37, 214, 300);
+    const previewHeight = mobileLandscape ? 108 : Phaser.Math.Clamp(height * .29, 150, 235);
 
     const title = this.add.text(width / 2, headerY, definition.name, {
       fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: `${Math.min(28, width / 30)}px`,
@@ -76,13 +79,19 @@ export class CodexScene extends Phaser.Scene {
     }).setOrigin(0, .5);
     this.pageObjects.push(title, meta, counter);
 
-    const previews: Array<{ label: string; animation: 'idle' | 'move' | 'attack' }> = [
-      { label: '대기', animation: 'idle' },
-      { label: '이동', animation: 'move' },
-      { label: '공격', animation: 'attack' },
+    const previews: Array<{ label: string; animation: 'idle' | 'move' | 'attack'; texture: string }> = [
+      { label: '대기', animation: 'idle', texture: definition.texture },
+      { label: '이동', animation: 'move', texture: definition.texture },
+      { label: '공격', animation: 'attack', texture: definition.texture },
     ];
+    const alternateState = ALTERNATE_STATES[definition.kind];
+    if (alternateState) previews.push({ label: alternateState.label, animation: 'idle', texture: alternateState.texture });
+    const gap = Math.min(24, width * .025);
+    const panelWidth = Math.min(220, (width - 150 - gap * (previews.length - 1)) / previews.length);
+    const totalWidth = panelWidth * previews.length + gap * (previews.length - 1);
+    const firstX = width / 2 - totalWidth / 2 + panelWidth / 2;
 
-    previews.forEach(({ label, animation }, previewIndex) => {
+    previews.forEach(({ label, animation, texture }, previewIndex) => {
       const x = firstX + previewIndex * (panelWidth + gap);
       const top = previewY - previewHeight / 2;
       const panel = this.add.graphics()
@@ -93,13 +102,13 @@ export class CodexScene extends Phaser.Scene {
         fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#dfe9b1',
       }).setOrigin(.5);
       const spriteScale = Math.min(.46, panelWidth / 362 * .86, (previewHeight - 38) / 362);
-      const sprite = this.add.sprite(x, top + previewHeight - 8, definition.texture, 0)
+      const sprite = this.add.sprite(x, top + previewHeight - 8, texture, 0)
         .setOrigin(.5, 340 / 362).setScale(spriteScale);
-      const animationKey = animation === 'attack' ? `${definition.texture}-codex-attack` : `${definition.texture}-${animation}`;
+      const animationKey = animation === 'attack' ? `${texture}-codex-attack` : `${texture}-${animation}`;
       if (animation === 'attack' && !this.anims.exists(animationKey)) {
         this.anims.create({
           key: animationKey,
-          frames: this.anims.generateFrameNumbers(definition.texture, { start: 8, end: 11 }),
+          frames: this.anims.generateFrameNumbers(texture, { start: 8, end: 11 }),
           frameRate: 8,
           repeat: -1,
           repeatDelay: 280,
@@ -109,12 +118,12 @@ export class CodexScene extends Phaser.Scene {
       this.pageObjects.push(panel, labelText, sprite);
     });
 
-    const descriptionTop = previewY + previewHeight / 2 + 16;
-    const descriptionHeight = Math.max(58, height - descriptionTop - 52);
+    const descriptionTop = previewY + previewHeight / 2 + (mobileLandscape ? 7 : 16);
+    const descriptionHeight = Math.max(58, height - descriptionTop - (mobileLandscape ? 12 : 52));
     const descriptionPanel = this.add.graphics()
       .fillStyle(0x0c1813, .95).fillRoundedRect(78, descriptionTop, width - 156, descriptionHeight, 10)
       .lineStyle(1, 0x7d7047, .7).strokeRoundedRect(78, descriptionTop, width - 156, descriptionHeight, 10)
-      .lineStyle(1, 0x89936f, .22).lineBetween(90, descriptionTop + 45, width - 90, descriptionTop + 45);
+      .lineStyle(1, 0x89936f, .22).lineBetween(90, descriptionTop + (mobileLandscape ? 34 : 45), width - 90, descriptionTop + (mobileLandscape ? 34 : 45));
     const dps = definition.damage / definition.attackInterval;
     const stats = [
       { label: '체력', value: `${definition.hp}` },
@@ -129,21 +138,21 @@ export class CodexScene extends Phaser.Scene {
     const statWidth = (width - statsLeft * 2) / stats.length;
     stats.forEach((stat, statIndex) => {
       const statX = statsLeft + statWidth * (statIndex + .5);
-      const statLabel = this.add.text(statX, descriptionTop + 9, stat.label, {
-        fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: '9px', color: '#8fa095',
+      const statLabel = this.add.text(statX, descriptionTop + (mobileLandscape ? 4 : 9), stat.label, {
+        fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: mobileLandscape ? '7px' : '9px', color: '#8fa095',
       }).setOrigin(.5, 0);
-      const statValue = this.add.text(statX, descriptionTop + 23, stat.value, {
-        fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#f0dfa0',
+      const statValue = this.add.text(statX, descriptionTop + (mobileLandscape ? 15 : 23), stat.value, {
+        fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: mobileLandscape ? '10px' : '13px', fontStyle: 'bold', color: '#f0dfa0',
       }).setOrigin(.5, 0);
       this.pageObjects.push(statLabel, statValue);
     });
-    const descriptionLabel = this.add.text(94, descriptionTop + 53, '병종 설명', {
-      fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#d8c978',
+    const descriptionLabel = this.add.text(94, descriptionTop + (mobileLandscape ? 39 : 53), '병종 설명', {
+      fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: mobileLandscape ? '9px' : '12px', fontStyle: 'bold', color: '#d8c978',
     });
-    const descriptionText = this.add.text(94, descriptionTop + 73, description, {
-      fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: `${Math.min(15, width / 62)}px`,
+    const descriptionText = this.add.text(94, descriptionTop + (mobileLandscape ? 53 : 73), description, {
+      fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: `${mobileLandscape ? 9 : Math.min(15, width / 62)}px`,
       color: description === DESCRIPTION_PLACEHOLDER ? '#78847b' : '#e6e2cf',
-      wordWrap: { width: width - 188 }, lineSpacing: 5,
+      wordWrap: { width: width - 188 }, lineSpacing: mobileLandscape ? 1 : 5, maxLines: mobileLandscape ? 3 : 0,
     });
     this.pageObjects.push(descriptionPanel, descriptionLabel, descriptionText);
   }
