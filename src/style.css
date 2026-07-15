@@ -280,17 +280,17 @@ kbd {
   .mobile-device .hud-base-status { gap: 4px; font-size: 9px; }
   .mobile-device .hud-base-status .versus { font-size: 8px; }
   .mobile-device .hud-time { font-size: 12px; }
-  .mobile-device .hud-bottom { gap: 3px; padding: 2px 4px 3px; }
-  .mobile-device .production-panel { flex: 1; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2px; }
-  .mobile-device .promotion-buttons { flex: 0 0 56px; grid-template-columns: 56px; gap: 2px; }
-  .mobile-device .unit-button, .mobile-device .hud-action { min-height: 37px; border-radius: 6px; }
-  .mobile-device .unit-button { grid-template-columns: 31px minmax(0, 1fr); gap: 1px; padding: 1px 2px 1px 1px; }
-  .mobile-device .unit-portrait { width: 31px; height: 31px; }
-  .mobile-device .unit-portrait img { width: 154px; height: 93px; }
-  .mobile-device .unit-key { top: 2px; left: 2px; width: 14px; height: 14px; font-size: 8px; }
-  .mobile-device .unit-name { margin: 0; font-size: 8px; }
-  .mobile-device .unit-cost { font-size: 7px; }
-  .mobile-device .hud-action { padding: 2px; font-size: 8px; }
+  .mobile-device .hud-bottom { align-items: center; gap: 4px; padding: 3px 4px 4px; }
+  .mobile-device .production-panel { flex: 0 0 auto; grid-template-columns: repeat(4, 48px); gap: 3px; }
+  .mobile-device .promotion-buttons { flex: 0 0 auto; grid-template-columns: repeat(2, 46px); gap: 3px; }
+  .mobile-device .unit-button, .mobile-device .hud-action { width: 48px; min-height: 46px; height: 46px; border-radius: 6px; }
+  .mobile-device .unit-button { display: block; padding: 0; }
+  .mobile-device .unit-portrait { position: absolute; top: 0; left: 50%; width: 44px; height: 35px; transform: translateX(-50%); }
+  .mobile-device .unit-portrait img { top: -11px; width: 228px; height: 138px; }
+  .mobile-device .unit-key, .mobile-device .unit-name { display: none; }
+  .mobile-device .unit-details { position: absolute; z-index: 2; right: 0; bottom: 0; left: 0; min-height: 14px; display: grid; place-items: center; background: rgba(7, 15, 12, .88); }
+  .mobile-device .unit-cost { color: #f4d96f; font-size: 9px; font-weight: 900; line-height: 14px; white-space: nowrap; }
+  .mobile-device .hud-action { width: 46px; padding: 2px; font-size: 8px; }
   .mobile-device .hud-action kbd { min-width: 14px; height: 15px; padding: 0 2px; font-size: 7px; }
   .mobile-device .camera-controls { top: 50px; right: 6px; grid-template-columns: repeat(2, 32px); gap: 3px; }
   .mobile-device .camera-controls button { width: 32px; height: 29px; border-radius: 6px; }
