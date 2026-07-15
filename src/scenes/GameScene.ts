@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import {
   DIFFICULTIES, ENEMY_BASE_X, GROUND_TEXTURE_HEIGHT, GROUND_TEXTURE_SURFACE_Y, GROUND_Y,
   HILLS_TEXTURE_BOTTOM_Y, PLAYER_BASE_X, PROMOTION_COSTS, PROMOTION_OPTIONS, SECOND_PROMOTIONS,
@@ -46,6 +47,8 @@ export class GameScene extends Phaser.Scene {
   private localTeam: Team = 'player';
   private pvpPollTimer: number | null = null;
   private pvpStateTimer: number | null = null;
+  private pvpFallbackStateTimer: number | null = null;
+  private pvpRealtimeChannel: RealtimeChannel | null = null;
   private pvpPolling = false;
   private pvpStateBusy = false;
   private pvpStateSequence = 0;
@@ -103,12 +106,21 @@ export class GameScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.shutdown, this);
     if (this.pvp) {
       this.hud.message(`${this.pvp.isHost ? '왼쪽' : '오른쪽'} 진영 · ${this.pvp.opponentLoginId}님과의 전투가 시작되었습니다.`);
+      this.pvpRealtimeChannel = PvpRoomService.subscribeToBattleState(
+        this.pvp.roomId,
+        (snapshot) => {
+          if (!this.pvp?.isHost) this.applyPvpSnapshot(snapshot);
+        },
+      );
       void this.pollPvpEvents();
       this.pvpPollTimer = window.setInterval(() => void this.pollPvpEvents(), 350);
-      this.pvpStateTimer = window.setInterval(
-        () => void (this.pvp!.isHost ? this.publishPvpState() : this.pullPvpState()),
-        250,
-      );
+      if (this.pvp.isHost) {
+        this.pvpStateTimer = window.setInterval(() => this.broadcastPvpState(), 100);
+        this.pvpFallbackStateTimer = window.setInterval(() => void this.publishPvpState(), 1000);
+      } else {
+        void this.pullPvpState();
+        this.pvpFallbackStateTimer = window.setInterval(() => void this.pullPvpState(), 1000);
+      }
     } else {
       this.hud.message(`${difficultyConfig.label} 난이도 전투가 시작되었습니다.`);
       this.rankedRunPromise = RankService.startRun(this.difficulty);
@@ -122,6 +134,10 @@ export class GameScene extends Phaser.Scene {
     const elapsed = (now - this.startedAt) / 1000;
     this.playerUnits.forEach((unit) => unit.updateStatus(now));
     this.enemyUnits.forEach((unit) => unit.updateStatus(now));
+    if (this.pvp && !this.pvp.isHost) {
+      this.playerUnits.forEach((unit) => unit.updateNetworkPosition(dt));
+      this.enemyUnits.forEach((unit) => unit.updateNetworkPosition(dt));
+    }
     this.economy.update(dt);
     if (!this.pvp) this.ai.update(dt, elapsed, (kind) => this.spawnUnit(kind, 'enemy'));
     this.updateCamera(dt);
@@ -287,14 +303,7 @@ export class GameScene extends Phaser.Scene {
   private async publishPvpState(force = false): Promise<void> {
     if (!this.pvp?.isHost || (this.pvpStateBusy && !force) || (this.finished && !force)) return;
     if (!force) this.pvpStateBusy = true;
-    const snapshot: PvpBattleSnapshot = {
-      sequence: ++this.pvpStateSequence,
-      player_base_hp: this.playerBase.hp,
-      enemy_base_hp: this.enemyBase.hp,
-      units: [...this.pvpUnits.entries()].map(([eventId, unit]) => ({
-        event_id: eventId, x: unit.x, hp: unit.hp, burn_stacks: unit.burnStackCount,
-      })),
-    };
+    const snapshot = this.createPvpSnapshot();
     try {
       await PvpRoomService.setBattleState(this.pvp.roomId, snapshot);
     } catch (error) {
@@ -304,15 +313,42 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  private broadcastPvpState(): void {
+    if (!this.pvp?.isHost || !this.pvpRealtimeChannel || this.finished) return;
+    PvpRoomService.broadcastBattleState(this.pvpRealtimeChannel, this.createPvpSnapshot());
+  }
+
+  private createPvpSnapshot(): PvpBattleSnapshot {
+    return {
+      sequence: ++this.pvpStateSequence,
+      player_base_hp: this.playerBase.hp,
+      enemy_base_hp: this.enemyBase.hp,
+      units: [...this.pvpUnits.entries()].map(([eventId, unit]) => ({
+        event_id: eventId, x: unit.x, hp: unit.hp, burn_stacks: unit.burnStackCount,
+      })),
+    };
+  }
+
   private async pullPvpState(): Promise<void> {
     if (!this.pvp || this.pvp.isHost || this.pvpStateBusy || this.finished) return;
     this.pvpStateBusy = true;
     try {
       const snapshot = await PvpRoomService.getBattleState(this.pvp.roomId);
       if (!snapshot) return;
-      this.playerBase.applyNetworkHp(snapshot.player_base_hp);
-      this.enemyBase.applyNetworkHp(snapshot.enemy_base_hp);
-      snapshot.units.forEach((state) => {
+      this.applyPvpSnapshot(snapshot);
+    } catch (error) {
+      console.warn('1대1 전투 상태 수신 실패', error);
+    } finally {
+      this.pvpStateBusy = false;
+    }
+  }
+
+  private applyPvpSnapshot(snapshot: PvpBattleSnapshot): void {
+    if (snapshot.sequence <= this.pvpStateSequence || this.finished) return;
+    this.pvpStateSequence = snapshot.sequence;
+    this.playerBase.applyNetworkHp(snapshot.player_base_hp);
+    this.enemyBase.applyNetworkHp(snapshot.enemy_base_hp);
+    snapshot.units.forEach((state) => {
         const unit = this.pvpUnits.get(state.event_id);
         if (!unit || !unit.active) return;
         const wasAlive = unit.alive;
@@ -327,11 +363,6 @@ export class GameScene extends Phaser.Scene {
           this.enemyUnits = this.enemyUnits.filter((item) => item !== unit);
         }
       });
-    } catch (error) {
-      console.warn('1대1 전투 상태 수신 실패', error);
-    } finally {
-      this.pvpStateBusy = false;
-    }
   }
 
   private getNetworkError(error: unknown): string {
@@ -509,13 +540,18 @@ export class GameScene extends Phaser.Scene {
 
   private finish(victory: boolean, elapsedSeconds: number): void {
     if (this.finished) return;
-    if (this.pvp?.isHost) void this.publishPvpState(true);
+    if (this.pvp?.isHost) {
+      this.broadcastPvpState();
+      void this.publishPvpState(true);
+    }
     this.finished = true;
     this.closePromotion();
     if (this.pvpPollTimer !== null) window.clearInterval(this.pvpPollTimer);
     this.pvpPollTimer = null;
     if (this.pvpStateTimer !== null) window.clearInterval(this.pvpStateTimer);
     this.pvpStateTimer = null;
+    if (this.pvpFallbackStateTimer !== null) window.clearInterval(this.pvpFallbackStateTimer);
+    this.pvpFallbackStateTimer = null;
     this.time.delayedCall(700, () => {
       if (this.pvp) {
         this.scene.start('ResultScene', {
@@ -547,6 +583,10 @@ export class GameScene extends Phaser.Scene {
     this.pvpPollTimer = null;
     if (this.pvpStateTimer !== null) window.clearInterval(this.pvpStateTimer);
     this.pvpStateTimer = null;
+    if (this.pvpFallbackStateTimer !== null) window.clearInterval(this.pvpFallbackStateTimer);
+    this.pvpFallbackStateTimer = null;
+    if (this.pvpRealtimeChannel) PvpRoomService.closeBattleChannel(this.pvpRealtimeChannel);
+    this.pvpRealtimeChannel = null;
     this.events.off('battle-message', this.onBattleMessage, this);
     this.combat?.destroy();
     this.hud?.destroy();

@@ -1,6 +1,7 @@
 import { AuthService } from './AuthService';
 import { supabase } from './SupabaseClient';
 import type { UnitKind } from '../data/types';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export type PvpRoomStatus = 'waiting' | 'full' | 'cancelled';
 
@@ -31,6 +32,30 @@ export interface PvpBattleSnapshot {
 }
 
 export class PvpRoomService {
+  static subscribeToBattleState(
+    roomId: string,
+    onSnapshot: (snapshot: PvpBattleSnapshot) => void,
+  ): RealtimeChannel {
+    return supabase
+      .channel(`pvp-battle:${roomId}`, { config: { broadcast: { self: false, ack: false } } })
+      .on<PvpBattleSnapshot>('broadcast', { event: 'battle-state' }, ({ payload }) => {
+        if (this.isBattleSnapshot(payload)) onSnapshot(payload);
+      })
+      .subscribe((status, error) => {
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          console.warn('1대1 실시간 채널 연결 실패', error);
+        }
+      });
+  }
+
+  static broadcastBattleState(channel: RealtimeChannel, snapshot: PvpBattleSnapshot): void {
+    void channel.send({ type: 'broadcast', event: 'battle-state', payload: snapshot });
+  }
+
+  static closeBattleChannel(channel: RealtimeChannel): void {
+    void supabase.removeChannel(channel);
+  }
+
   static async createRoom(): Promise<PvpRoom> {
     await this.ensureAuthenticated();
     const { data, error } = await supabase.rpc('create_pvp_room');
@@ -85,12 +110,22 @@ export class PvpRoomService {
     const { data, error } = await supabase.rpc('get_pvp_battle_state', { p_room_id: roomId });
     if (error) throw error;
     if (!data || typeof data !== 'object') return null;
-    const value = data as Partial<PvpBattleSnapshot>;
-    if (typeof value.sequence !== 'number' || typeof value.player_base_hp !== 'number' ||
-        typeof value.enemy_base_hp !== 'number' || !Array.isArray(value.units)) {
+    if (!this.isBattleSnapshot(data)) {
       throw new Error('전투 상태 정보가 올바르지 않습니다.');
     }
-    return value as PvpBattleSnapshot;
+    return data;
+  }
+
+  private static isBattleSnapshot(value: unknown): value is PvpBattleSnapshot {
+    if (!value || typeof value !== 'object') return false;
+    const snapshot = value as Partial<PvpBattleSnapshot>;
+    return Number.isSafeInteger(snapshot.sequence) &&
+      Number.isFinite(snapshot.player_base_hp) &&
+      Number.isFinite(snapshot.enemy_base_hp) &&
+      Array.isArray(snapshot.units) && snapshot.units.every((unit) =>
+        unit && typeof unit === 'object' &&
+        Number.isSafeInteger(unit.event_id) && Number.isFinite(unit.x) &&
+        Number.isFinite(unit.hp) && Number.isFinite(unit.burn_stacks));
   }
 
   private static async ensureAuthenticated(): Promise<void> {

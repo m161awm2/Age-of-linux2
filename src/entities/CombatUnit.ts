@@ -36,6 +36,7 @@ export class CombatUnit extends Phaser.GameObjects.Container {
   isDragoonMelee = false;
   hasStartedCombat = false;
   private activeBurnStacks = 0;
+  private networkTargetX: number | null = null;
 
   private textureKey: string;
   private spriteLayout: SpriteAsset;
@@ -249,13 +250,22 @@ export class CombatUnit extends Phaser.GameObjects.Container {
   }
 
   applyNetworkState(x: number, hp: number, burnStacks = 0): void {
-    const moved = Math.abs(this.x - x) > .5;
-    this.x = x;
+    if (!Number.isFinite(x)) return;
+    this.networkTargetX = x;
     this.hp = Phaser.Math.Clamp(hp, 0, this.definition.hp);
     this.activeBurnStacks = Math.max(0, Math.floor(burnStacks));
     this.refreshBurnTint();
-    if (this.alive) this.playState(moved ? 'move' : 'idle');
     this.drawHealth(this.scene.time.now);
+  }
+
+  updateNetworkPosition(dt: number): void {
+    if (this.networkTargetX === null || !this.alive) return;
+    const distance = this.networkTargetX - this.x;
+    if (Math.abs(distance) > 300) this.x = this.networkTargetX;
+    else this.x += distance * (1 - Math.exp(-18 * dt));
+    const moving = Math.abs(this.networkTargetX - this.x) > .5;
+    if (!moving) this.x = this.networkTargetX;
+    this.playState(moving ? 'move' : 'idle');
   }
 
   showDamage(amount: number, color = '#fff1b4'): void {
