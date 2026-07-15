@@ -10,7 +10,8 @@ import { HomeChatPanel } from '../ui/HomeChatPanel';
 const DIFFICULTY_STYLES: Record<Difficulty, { top: number; bottom: number; border: number; glow: number; symbol: string; hint: string }> = {
   Easy: { top: 0x39895b, bottom: 0x17452e, border: 0x8be2aa, glow: 0x69d894, symbol: '◆', hint: '여유로운 전투' },
   Medium: { top: 0xb18a27, bottom: 0x5d4512, border: 0xffdb67, glow: 0xf0c94f, symbol: '◆◆', hint: '균형 잡힌 전투' },
-  Hard: { top: 0xa8453e, bottom: 0x5e211f, border: 0xff8e7e, glow: 0xf06a5d, symbol: '◆◆◆', hint: '거센 적의 공세' },
+  Hard: { top: 0xa86a32, bottom: 0x5e3518, border: 0xffb065, glow: 0xe98a42, symbol: '◆◆◆', hint: '거센 적의 공세' },
+  Impossible: { top: 0xa83b46, bottom: 0x52151f, border: 0xff7181, glow: 0xeb4458, symbol: '◆◆◆◆', hint: '극한의 전장' },
 };
 
 export class StartScene extends Phaser.Scene {
@@ -239,11 +240,11 @@ export class StartScene extends Phaser.Scene {
     }).setOrigin(.5).setInteractive({ useHandCursor: true });
     card.add([shadow, panel, blocker, title, subtitle, close]);
 
-    const difficulties: Difficulty[] = ['Easy', 'Medium', 'Hard'];
-    const buttonWidth = Math.min(184, (cardWidth - 80) / 3);
-    const gap = Math.min(20, (cardWidth - buttonWidth * 3) / 4);
+    const difficulties: Difficulty[] = ['Easy', 'Medium', 'Hard', 'Impossible'];
+    const buttonWidth = Math.min(145, (cardWidth - 90) / difficulties.length);
+    const gap = Math.min(14, (cardWidth - buttonWidth * difficulties.length) / (difficulties.length + 1));
     difficulties.forEach((difficulty, index) => {
-      const x = (index - 1) * (buttonWidth + gap);
+      const x = (index - (difficulties.length - 1) / 2) * (buttonWidth + gap);
       card.add(this.createDifficultyButton(x, 25, buttonWidth, difficulty));
     });
     const help = this.add.text(0, 102, '난이도는 적 기지 체력과 AI 생산 속도에 영향을 줍니다.', {

@@ -4,7 +4,7 @@ import { supabase } from './SupabaseClient';
 
 const NICKNAME_KEY = 'age-of-linux2-rank-nickname';
 
-export const RANKING_VERSION = '2026-07-15';
+export const RANKING_VERSION = '2026-07-15-difficulty-v2';
 
 export interface LeaderboardEntry {
   rank_position: number;

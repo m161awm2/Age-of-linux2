@@ -280,18 +280,18 @@ kbd {
   .mobile-device .hud-base-status { gap: 4px; font-size: 9px; }
   .mobile-device .hud-base-status .versus { font-size: 8px; }
   .mobile-device .hud-time { font-size: 12px; }
-  .mobile-device .hud-bottom { gap: 4px; padding: 4px 5px 5px; }
-  .mobile-device .production-panel { flex: 1; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3px; }
-  .mobile-device .promotion-buttons { flex: 0 0 62px; grid-template-columns: 62px; gap: 3px; }
-  .mobile-device .unit-button, .mobile-device .hud-action { min-height: 45px; border-radius: 7px; }
-  .mobile-device .unit-button { grid-template-columns: 39px minmax(0, 1fr); gap: 2px; padding: 2px; }
-  .mobile-device .unit-portrait { width: 39px; height: 39px; }
-  .mobile-device .unit-portrait img { width: 194px; height: 117px; }
-  .mobile-device .unit-key { top: 2px; left: 2px; width: 16px; height: 16px; font-size: 9px; }
-  .mobile-device .unit-name { margin: 0; font-size: 9px; }
-  .mobile-device .unit-cost { font-size: 8px; }
-  .mobile-device .hud-action { padding: 3px; font-size: 9px; }
-  .mobile-device .hud-action kbd { min-width: 16px; height: 17px; padding: 0 3px; font-size: 8px; }
+  .mobile-device .hud-bottom { gap: 3px; padding: 2px 4px 3px; }
+  .mobile-device .production-panel { flex: 1; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 2px; }
+  .mobile-device .promotion-buttons { flex: 0 0 56px; grid-template-columns: 56px; gap: 2px; }
+  .mobile-device .unit-button, .mobile-device .hud-action { min-height: 37px; border-radius: 6px; }
+  .mobile-device .unit-button { grid-template-columns: 31px minmax(0, 1fr); gap: 1px; padding: 1px 2px 1px 1px; }
+  .mobile-device .unit-portrait { width: 31px; height: 31px; }
+  .mobile-device .unit-portrait img { width: 154px; height: 93px; }
+  .mobile-device .unit-key { top: 2px; left: 2px; width: 14px; height: 14px; font-size: 8px; }
+  .mobile-device .unit-name { margin: 0; font-size: 8px; }
+  .mobile-device .unit-cost { font-size: 7px; }
+  .mobile-device .hud-action { padding: 2px; font-size: 8px; }
+  .mobile-device .hud-action kbd { min-width: 14px; height: 15px; padding: 0 2px; font-size: 7px; }
   .mobile-device .camera-controls { top: 50px; right: 6px; grid-template-columns: repeat(2, 32px); gap: 3px; }
   .mobile-device .camera-controls button { width: 32px; height: 29px; border-radius: 6px; }
   .mobile-device .camera-controls .settings-button { width: 67px; font-size: 9px; }

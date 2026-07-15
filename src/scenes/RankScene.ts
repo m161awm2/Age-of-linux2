@@ -9,7 +9,8 @@ import { UNIT_SHEET_BY_KEY } from '../assets/manifest';
 const DIFFICULTY_COLORS: Record<Difficulty, number> = {
   Easy: 0x4fa56b,
   Medium: 0xd8ad3e,
-  Hard: 0xc9554e,
+  Hard: 0xd47b3f,
+  Impossible: 0xc43d54,
 };
 
 export class RankScene extends Phaser.Scene {
@@ -37,9 +38,12 @@ export class RankScene extends Phaser.Scene {
     this.createButton(76, 46, 92, 34, '← 메뉴', () => this.scene.start('StartScene'));
     this.createButton(width - 76, 46, 92, 34, '새로고침', () => void this.loadRanks());
 
-    (['Easy', 'Medium', 'Hard'] as Difficulty[]).forEach((difficulty, index) => {
-      const x = width / 2 + (index - 1) * 150;
-      const background = this.add.rectangle(x, 96, 134, 38, 0x1d3027)
+    const difficulties: Difficulty[] = ['Easy', 'Medium', 'Hard', 'Impossible'];
+    const tabWidth = Math.min(124, (width - 100) / difficulties.length);
+    const tabGap = Math.min(12, (width - tabWidth * difficulties.length) / (difficulties.length + 1));
+    difficulties.forEach((difficulty, index) => {
+      const x = width / 2 + (index - (difficulties.length - 1) / 2) * (tabWidth + tabGap);
+      const background = this.add.rectangle(x, 96, tabWidth, 38, 0x1d3027)
         .setStrokeStyle(2, DIFFICULTY_COLORS[difficulty]).setInteractive({ useHandCursor: true });
       const label = this.add.text(x, 96, DIFFICULTIES[difficulty].label, {
         fontFamily: 'Pretendard, sans-serif', fontSize: '16px', fontStyle: 'bold', color: '#fff5d8',
