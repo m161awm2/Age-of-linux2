@@ -2,7 +2,7 @@ import { rename } from 'node:fs/promises';
 import path from 'node:path';
 import sharp from 'sharp';
 
-const targets = ['archer.png', 'chariot.png'];
+const targets = ['archer.png', 'chariot.png', 'fire-archer.png'];
 const frameWidth = 362;
 const frameHeight = 362;
 const minimumComponentSize = 80;

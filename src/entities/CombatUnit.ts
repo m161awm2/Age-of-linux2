@@ -25,6 +25,7 @@ export class CombatUnit extends Phaser.GameObjects.Container {
   berserkTriggered = false;
   berserkUntil = 0;
   parryReadyAt = 0;
+  stunnedUntil = 0;
   chargeTiles = 0;
   chargeDamageTiles = 0;
   chargeGraceUntil = 0;
@@ -76,6 +77,7 @@ export class CombatUnit extends Phaser.GameObjects.Container {
 
   get alive(): boolean { return this.hp > 0; }
   get isBerserking(): boolean { return this.definition.kind === 'viking' && this.berserkUntil > this.scene.time.now; }
+  get isStunned(): boolean { return this.alive && this.stunnedUntil > this.scene.time.now; }
   get attackDamage(): number {
     return this.definition.damage + (this.definition.kind === 'shieldGuard' && this.shieldHp === 0 ? 2 : 0);
   }
@@ -88,13 +90,38 @@ export class CombatUnit extends Phaser.GameObjects.Container {
   }
 
   startAttack(target: AttackTarget, now: number, intervalOverride?: number): void {
-    if (!this.alive || this.attackLocked || now < this.nextAttackAt) return;
+    if (!this.alive || this.isStunned || this.attackLocked || now < this.nextAttackAt) return;
     const interval = intervalOverride ?? this.definition.attackInterval;
+    const instantIaiStrike = this.definition.kind === 'ronin' && this.firstStrike;
     this.nextAttackAt = now + interval * 1000 * (this.isBerserking ? .6 : 1);
     this.attackLocked = true;
     this.pendingTarget = target;
     this.hitApplied = false;
     this.playState('attack');
+    // 낭인의 첫 발도술은 공격 모션은 재생하되 피해 선딜 없이 즉시 적중한다.
+    if (instantIaiStrike) {
+      this.hitApplied = true;
+      this.scene.events.emit('unit-hit-frame', this, this.pendingTarget);
+    }
+  }
+
+  applyStun(now: number, durationMs: number): void {
+    if (!this.alive) return;
+    this.stunnedUntil = Math.max(this.stunnedUntil, now + durationMs);
+    this.attackLocked = false;
+    this.pendingTarget = null;
+    this.hitApplied = false;
+    this.sprite.stop();
+    this.unitState = 'idle';
+    this.sprite.play(`${this.textureKey}-idle`, true);
+  }
+
+  flashIaiHit(): void {
+    if (!this.alive) return;
+    this.sprite.setTint(0x55ff88);
+    this.scene.time.delayedCall(120, () => {
+      if (this.sprite.active) this.sprite.clearTint();
+    });
   }
 
   setDragoonMode(melee: boolean): void {
@@ -168,6 +195,7 @@ export class CombatUnit extends Phaser.GameObjects.Container {
       ? Math.round((this.chargeMultiplier(now) - 1) * 100)
       : 0;
     const states = [
+      this.isStunned ? '기절' : '',
       this.isBerserking ? '광폭' : '',
       this.canParry(now) ? '패링' : '',
       this.definition.kind === 'shieldGuard' && this.shieldHp === 0 ? '롱소드 +2' : '',

@@ -13,6 +13,10 @@ export class MovementSystem {
     const liveEnemies = enemies.filter((unit) => unit.alive).sort(this.frontSort(enemies[0]?.team ?? 'enemy'));
 
     alive.forEach((unit, index) => {
+      if (unit.isStunned) {
+        unit.playState('idle');
+        return;
+      }
       const allyAhead = index > 0 ? alive[index - 1] : undefined;
       const enemyAhead = liveEnemies[0];
       const direction = unit.team === 'player' ? 1 : -1;

@@ -20,7 +20,7 @@ export class CombatSystem {
 
   update(units: CombatUnit[], enemies: CombatUnit[], enemyBase: BaseEntity, now: number): void {
     for (const unit of units) {
-      if (!unit.alive || unit.attackLocked) continue;
+      if (!unit.alive || unit.isStunned || unit.attackLocked) continue;
       const target = this.findTarget(unit, enemies);
       if (target) {
         const distance = Math.abs(target.x - unit.x);
@@ -66,6 +66,7 @@ export class CombatSystem {
 
   private applyUnitDamage(attacker: CombatUnit, target: CombatUnit): void {
     const now = this.scene.time.now;
+    const isIaiStrike = attacker.definition.kind === 'ronin' && attacker.firstStrike;
     const distance = Math.abs(attacker.x - target.x);
     const dragoonMelee = attacker.definition.kind === 'dragoon' && distance <= 1.5 * TILE_SIZE;
     let damage = dragoonMelee ? Math.floor(attacker.attackDamage * 1.5) : attacker.attackDamage;
@@ -94,8 +95,10 @@ export class CombatSystem {
       attacker.showDamage(reflected, '#9eeeff');
       this.scene.events.emit('battle-message', '사나다가 공격을 패링해 두 배로 반격했습니다!');
     } else {
+      if (isIaiStrike) target.flashIaiHit();
       const dealt = target.takeDamage(damage, now);
       target.showDamage(damage);
+      if (isIaiStrike && target.alive) target.applyStun(now, 400);
       if (attacker.definition.kind === 'viking' && dealt > 0) attacker.heal(1);
       if (attacker.definition.kind === 'crusader' && dealt > 0) {
         attacker.healCounter += 1;
@@ -128,6 +131,7 @@ export class CombatSystem {
     let damage = attacker.attackDamage;
     if (attacker.isBerserking) damage = Math.floor(damage * 2);
     base.takeDamage(damage);
+    if (attacker.definition.kind === 'ronin' && attacker.firstStrike) attacker.firstStrike = false;
     attacker.resetCharge(this.scene.time.now);
     const text = this.scene.add.text(base.x, base.y - 300, `-${damage}`, {
       fontFamily: 'Pretendard, sans-serif', fontSize: '24px', fontStyle: 'bold', color: '#ffd27c',
