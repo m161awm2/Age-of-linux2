@@ -84,7 +84,6 @@ export class CombatSystem {
       damage = Math.floor(damage * 1.8);
     }
     if (attacker.definition.kind === 'halberd') damage += Math.floor(target.definition.hp * .2);
-    else if (attacker.definition.kind === 'fireArcher') damage += Math.floor(target.definition.hp * .12);
     if (attacker.definition.kind === 'ronin' && attacker.firstStrike) {
       damage *= 2;
       attacker.firstStrike = false;
@@ -101,6 +100,7 @@ export class CombatSystem {
       if (isIaiStrike) target.flashIaiHit();
       const dealt = target.takeDamage(damage, now);
       target.showDamage(damage, chargeBonus > 0 ? '#ffd45c' : '#fff1b4');
+      if (attacker.definition.kind === 'fireArcher' && dealt > 0 && target.alive) target.applyBurnStack();
       if (isIaiStrike && target.alive) target.applyStun(now, 400);
       if (attacker.definition.kind === 'viking' && dealt > 0) attacker.heal(1);
       if (attacker.definition.kind === 'crusader' && dealt > 0) {

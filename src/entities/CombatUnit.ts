@@ -35,6 +35,7 @@ export class CombatUnit extends Phaser.GameObjects.Container {
   chargeGraceUntil = 0;
   isDragoonMelee = false;
   hasStartedCombat = false;
+  private activeBurnStacks = 0;
 
   private textureKey: string;
   private spriteLayout: SpriteAsset;
@@ -87,6 +88,7 @@ export class CombatUnit extends Phaser.GameObjects.Container {
   }
 
   get alive(): boolean { return this.hp > 0; }
+  get burnStackCount(): number { return this.activeBurnStacks; }
   get isBerserking(): boolean { return this.definition.kind === 'viking' && this.berserkUntil > this.scene.time.now; }
   get isStunned(): boolean { return this.alive && this.stunnedUntil > this.scene.time.now; }
   get attackDamage(): number {
@@ -132,8 +134,31 @@ export class CombatUnit extends Phaser.GameObjects.Container {
     if (!this.alive) return;
     this.sprite.setTint(0x55ff88);
     this.scene.time.delayedCall(120, () => {
-      if (this.sprite.active) this.sprite.clearTint();
+      if (this.sprite.active) this.refreshBurnTint();
     });
+  }
+
+  applyBurnStack(): void {
+    if (!this.alive) return;
+    this.activeBurnStacks += 1;
+    this.refreshBurnTint();
+    this.updateStatus(this.scene.time.now);
+    const tickDamage = this.definition.hp * .05;
+    for (let tick = 1; tick <= 3; tick += 1) {
+      this.scene.time.delayedCall(tick * 500, () => {
+        if (this.alive) {
+          this.takeDamage(tickDamage, this.scene.time.now);
+          this.showDamage(tickDamage, '#ff654d');
+        }
+        if (tick === 3) {
+          this.activeBurnStacks = Math.max(0, this.activeBurnStacks - 1);
+          if (this.active) {
+            this.refreshBurnTint();
+            this.updateStatus(this.scene.time.now);
+          }
+        }
+      });
+    }
   }
 
   setDragoonMode(melee: boolean): void {
@@ -144,7 +169,7 @@ export class CombatUnit extends Phaser.GameObjects.Container {
 
   takeDamage(amount: number, now: number): number {
     if (!this.alive) return 0;
-    const rounded = Math.max(1, Math.floor(amount));
+    const rounded = amount < 1 ? Math.max(.01, amount) : Math.floor(amount);
     if (this.shieldHp > 0) {
       this.shieldHp = Math.max(0, this.shieldHp - rounded);
       if (this.shieldHp === 0) this.setVisualTexture('shieldGuardBroken');
@@ -223,16 +248,19 @@ export class CombatUnit extends Phaser.GameObjects.Container {
     this.statusText.setText(states.join(' · '));
   }
 
-  applyNetworkState(x: number, hp: number): void {
+  applyNetworkState(x: number, hp: number, burnStacks = 0): void {
     const moved = Math.abs(this.x - x) > .5;
     this.x = x;
     this.hp = Phaser.Math.Clamp(hp, 0, this.definition.hp);
+    this.activeBurnStacks = Math.max(0, Math.floor(burnStacks));
+    this.refreshBurnTint();
     if (this.alive) this.playState(moved ? 'move' : 'idle');
     this.drawHealth(this.scene.time.now);
   }
 
   showDamage(amount: number, color = '#fff1b4'): void {
-    const text = this.scene.add.text(this.x, this.y - 120, `-${Math.floor(amount)}`, {
+    const label = Number.isInteger(amount) ? amount.toString() : amount.toFixed(1);
+    const text = this.scene.add.text(this.x, this.y - 120, `-${label}`, {
       fontFamily: 'Pretendard, sans-serif', fontSize: '20px', fontStyle: 'bold', color,
       stroke: '#1b120c', strokeThickness: 5,
     }).setOrigin(.5).setDepth(100);
@@ -258,6 +286,7 @@ export class CombatUnit extends Phaser.GameObjects.Container {
     this.sprite.setTexture(textureKey, 0);
     this.lockSpriteGeometry();
     this.sprite.setFlipX(this.team === 'enemy');
+    this.refreshBurnTint();
     this.unitState = 'idle';
     if (!this.attackLocked) this.playState('idle');
   }
@@ -274,6 +303,12 @@ export class CombatUnit extends Phaser.GameObjects.Container {
       .setOrigin(.5, 1)
       .setPosition(direction * this.spriteLayout.frameOffsetX * UNIT_SCALE, this.spriteLayout.frameOffsetY * UNIT_SCALE)
       .setDisplaySize(this.spriteLayout.frameWidth * UNIT_SCALE, this.spriteLayout.frameHeight * UNIT_SCALE);
+  }
+
+  private refreshBurnTint(): void {
+    if (!this.sprite.active) return;
+    if (this.activeBurnStacks > 0) this.sprite.setTint(0xff4a3d);
+    else this.sprite.clearTint();
   }
 
   private drawHealth(now: number): void {

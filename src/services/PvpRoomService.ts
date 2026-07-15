@@ -27,7 +27,7 @@ export interface PvpBattleSnapshot {
   sequence: number;
   player_base_hp: number;
   enemy_base_hp: number;
-  units: Array<{ event_id: number; x: number; hp: number }>;
+  units: Array<{ event_id: number; x: number; hp: number; burn_stacks: number }>;
 }
 
 export class PvpRoomService {

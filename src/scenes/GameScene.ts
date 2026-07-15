@@ -291,7 +291,9 @@ export class GameScene extends Phaser.Scene {
       sequence: ++this.pvpStateSequence,
       player_base_hp: this.playerBase.hp,
       enemy_base_hp: this.enemyBase.hp,
-      units: [...this.pvpUnits.entries()].map(([eventId, unit]) => ({ event_id: eventId, x: unit.x, hp: unit.hp })),
+      units: [...this.pvpUnits.entries()].map(([eventId, unit]) => ({
+        event_id: eventId, x: unit.x, hp: unit.hp, burn_stacks: unit.burnStackCount,
+      })),
     };
     try {
       await PvpRoomService.setBattleState(this.pvp.roomId, snapshot);
@@ -314,7 +316,7 @@ export class GameScene extends Phaser.Scene {
         const unit = this.pvpUnits.get(state.event_id);
         if (!unit || !unit.active) return;
         const wasAlive = unit.alive;
-        unit.applyNetworkState(state.x, state.hp);
+        unit.applyNetworkState(state.x, state.hp, state.burn_stacks);
         if (wasAlive && !unit.alive && unit.team !== this.localTeam) {
           this.economy.reward(Math.max(1, Math.floor(unit.definition.cost * .5)));
         }
