@@ -17,9 +17,10 @@ export const TILE_SIZE = 76;
 
 export const DIFFICULTIES: Record<Difficulty, DifficultyConfig> = {
   Easy: { label: '쉬움', enemyBaseHp: 100, aiCostMultiplier: 1.3, aiTimeMultiplier: 1.35, aiBountyRate: 0.55 },
-  Medium: { label: '보통', enemyBaseHp: 200, aiCostMultiplier: 0.9, aiTimeMultiplier: 1.15, aiBountyRate: 0.65 },
-  Hard: { label: '어려움', enemyBaseHp: 225, aiCostMultiplier: 0.8, aiTimeMultiplier: 1.075, aiBountyRate: 0.7 },
-  Impossible: { label: '임파서블', enemyBaseHp: 250, aiCostMultiplier: 0.7, aiTimeMultiplier: 1, aiBountyRate: 0.75 },
+  Normal: { label: '보통', enemyBaseHp: 150, aiCostMultiplier: 1.1, aiTimeMultiplier: 1.25, aiBountyRate: 0.6 },
+  Medium: { label: '어려움', enemyBaseHp: 200, aiCostMultiplier: 0.9, aiTimeMultiplier: 1.15, aiBountyRate: 0.65 },
+  Hard: { label: '임파서블', enemyBaseHp: 225, aiCostMultiplier: 0.8, aiTimeMultiplier: 1.075, aiBountyRate: 0.7 },
+  Impossible: { label: '헬', enemyBaseHp: 250, aiCostMultiplier: 0.7, aiTimeMultiplier: 1, aiBountyRate: 0.75 },
 };
 
 export const PROMOTION_COSTS = {

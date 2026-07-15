@@ -1,5 +1,5 @@
 export type Team = 'player' | 'enemy';
-export type Difficulty = 'Easy' | 'Medium' | 'Hard' | 'Impossible';
+export type Difficulty = 'Easy' | 'Normal' | 'Medium' | 'Hard' | 'Impossible';
 export type UnitFamily = 'infantry' | 'archer' | 'cavalry' | 'special';
 
 export type UnitKind =

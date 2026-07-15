@@ -8,10 +8,11 @@ import { AuthService } from '../services/AuthService';
 import { HomeChatPanel } from '../ui/HomeChatPanel';
 
 const DIFFICULTY_STYLES: Record<Difficulty, { top: number; bottom: number; border: number; glow: number; symbol: string; hint: string }> = {
-  Easy: { top: 0x39895b, bottom: 0x17452e, border: 0x8be2aa, glow: 0x69d894, symbol: '◆', hint: '여유로운 전투' },
-  Medium: { top: 0xb18a27, bottom: 0x5d4512, border: 0xffdb67, glow: 0xf0c94f, symbol: '◆◆', hint: '균형 잡힌 전투' },
-  Hard: { top: 0xa86a32, bottom: 0x5e3518, border: 0xffb065, glow: 0xe98a42, symbol: '◆◆◆', hint: '거센 적의 공세' },
-  Impossible: { top: 0xa83b46, bottom: 0x52151f, border: 0xff7181, glow: 0xeb4458, symbol: '◆◆◆◆', hint: '극한의 전장' },
+  Easy: { top: 0x39895b, bottom: 0x17452e, border: 0x8be2aa, glow: 0x69d894, symbol: '◆', hint: '입문' },
+  Normal: { top: 0x7d8f35, bottom: 0x3d4e19, border: 0xcbe66f, glow: 0xaed255, symbol: '◆◆', hint: '안정' },
+  Medium: { top: 0xb18a27, bottom: 0x5d4512, border: 0xffdb67, glow: 0xf0c94f, symbol: '◆◆◆', hint: '균형' },
+  Hard: { top: 0xa86a32, bottom: 0x5e3518, border: 0xffb065, glow: 0xe98a42, symbol: '◆◆◆◆', hint: '공세' },
+  Impossible: { top: 0xa83b46, bottom: 0x52151f, border: 0xff7181, glow: 0xeb4458, symbol: '◆◆◆◆◆', hint: '극한' },
 };
 
 export class StartScene extends Phaser.Scene {
@@ -240,7 +241,7 @@ export class StartScene extends Phaser.Scene {
     }).setOrigin(.5).setInteractive({ useHandCursor: true });
     card.add([shadow, panel, blocker, title, subtitle, close]);
 
-    const difficulties: Difficulty[] = ['Easy', 'Medium', 'Hard', 'Impossible'];
+    const difficulties: Difficulty[] = ['Easy', 'Normal', 'Medium', 'Hard', 'Impossible'];
     const buttonWidth = Math.min(145, (cardWidth - 90) / difficulties.length);
     const gap = Math.min(14, (cardWidth - buttonWidth * difficulties.length) / (difficulties.length + 1));
     difficulties.forEach((difficulty, index) => {
@@ -272,21 +273,36 @@ export class StartScene extends Phaser.Scene {
       fontFamily: 'Georgia, serif', fontSize: '10px', color: `#${style.border.toString(16).padStart(6, '0')}`,
     }).setOrigin(.5);
     const title = this.add.text(0, -8, config.label, {
-      fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: '21px', fontStyle: 'bold', color: '#fff8df',
+      fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: `${Math.min(21, Math.max(10, width / 4.2))}px`, fontStyle: 'bold', color: '#fff8df',
       stroke: '#1a160d', strokeThickness: 3,
     }).setOrigin(.5);
-    const detail = this.add.text(0, 14, `적 기지 ${config.enemyBaseHp} HP`, {
-      fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: '11px', color: '#fff3cf',
+    const detail = this.add.text(0, 14, `기지 ${config.enemyBaseHp} HP`, {
+      fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: `${Math.min(11, Math.max(8, width / 7))}px`, color: '#fff3cf',
     }).setOrigin(.5);
     const hint = this.add.text(0, 31, style.hint, {
       fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: '9px', color: '#fffbe6',
     }).setAlpha(.72).setOrigin(.5);
     const hitArea = this.add.zone(0, 0, width, 84).setInteractive({ useHandCursor: true });
     const button = this.add.container(x, y, [panel, symbol, title, detail, hint, hitArea]);
+    let pressedHere = false;
     hitArea.on('pointerover', () => button.setScale(1.045))
-      .on('pointerout', () => button.setScale(1))
-      .on('pointerdown', () => button.setScale(1.01))
-      .on('pointerup', () => this.scene.start('GameScene', { difficulty }));
+      .on('pointerout', () => {
+        pressedHere = false;
+        button.setScale(1);
+      })
+      .on('pointerdown', () => {
+        pressedHere = true;
+        button.setScale(1.01);
+      })
+      .on('pointerup', () => {
+        if (!pressedHere) return;
+        pressedHere = false;
+        this.scene.start('GameScene', { difficulty });
+      })
+      .on('pointerupoutside', () => {
+        pressedHere = false;
+        button.setScale(1);
+      });
     return button;
   }
 }

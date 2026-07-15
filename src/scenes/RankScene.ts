@@ -8,6 +8,7 @@ import { UNIT_SHEET_BY_KEY } from '../assets/manifest';
 
 const DIFFICULTY_COLORS: Record<Difficulty, number> = {
   Easy: 0x4fa56b,
+  Normal: 0x9fbd4c,
   Medium: 0xd8ad3e,
   Hard: 0xd47b3f,
   Impossible: 0xc43d54,
@@ -38,7 +39,7 @@ export class RankScene extends Phaser.Scene {
     this.createButton(76, 46, 92, 34, '← 메뉴', () => this.scene.start('StartScene'));
     this.createButton(width - 76, 46, 92, 34, '새로고침', () => void this.loadRanks());
 
-    const difficulties: Difficulty[] = ['Easy', 'Medium', 'Hard', 'Impossible'];
+    const difficulties: Difficulty[] = ['Easy', 'Normal', 'Medium', 'Hard', 'Impossible'];
     const tabWidth = Math.min(124, (width - 100) / difficulties.length);
     const tabGap = Math.min(12, (width - tabWidth * difficulties.length) / (difficulties.length + 1));
     difficulties.forEach((difficulty, index) => {
@@ -46,7 +47,7 @@ export class RankScene extends Phaser.Scene {
       const background = this.add.rectangle(x, 96, tabWidth, 38, 0x1d3027)
         .setStrokeStyle(2, DIFFICULTY_COLORS[difficulty]).setInteractive({ useHandCursor: true });
       const label = this.add.text(x, 96, DIFFICULTIES[difficulty].label, {
-        fontFamily: 'Pretendard, sans-serif', fontSize: '16px', fontStyle: 'bold', color: '#fff5d8',
+        fontFamily: 'Pretendard, sans-serif', fontSize: `${Math.min(16, Math.max(10, tabWidth / 4.2))}px`, fontStyle: 'bold', color: '#fff5d8',
       }).setOrigin(.5);
       background.on('pointerdown', () => {
         this.difficulty = difficulty;
