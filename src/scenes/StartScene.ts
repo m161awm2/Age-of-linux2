@@ -45,6 +45,10 @@ export class StartScene extends Phaser.Scene {
     }).setOrigin(.5);
 
     const difficultyModal = this.createDifficultyModal(width, height);
+    const modeModal = this.createModeModal(width, height, () => {
+      modeModal.setVisible(false);
+      difficultyModal.setVisible(true);
+    });
     const compact = height < 700;
     const menuWidth = mobileLandscape ? Math.min(160, (width * .58 - 42) / 2) : Math.min(250, width * .3);
     const menuHeight = mobileLandscape ? 38 : compact ? 42 : 54;
@@ -52,7 +56,7 @@ export class StartScene extends Phaser.Scene {
     const menuX = 20 + menuWidth / 2;
     const firstMenuY = mobileLandscape ? 142 : compact ? Math.max(225, height * .41) : Math.max(350, height * .5);
     const menuItems: Array<[string, string, number, () => void]> = [
-      ['▶', '게임 시작', 0xb8d56f, () => difficultyModal.setVisible(true)],
+      ['▶', '게임 시작', 0xb8d56f, () => modeModal.setVisible(true)],
       ['⚙', '설정', 0xe0c36b, () => settingsPanel.open()],
       ['▤', '도감', 0x87c9b0, () => this.scene.start('CodexScene')],
       ['?', '튜토리얼', 0x9db7e0, () => this.scene.start('TutorialScene', { forced: false })],
@@ -75,7 +79,81 @@ export class StartScene extends Phaser.Scene {
       }).setOrigin(.5);
     }
 
-    this.input.keyboard?.on('keydown-ESC', () => { if (difficultyModal.visible) difficultyModal.setVisible(false); });
+    this.input.keyboard?.on('keydown-ESC', () => {
+      if (difficultyModal.visible) difficultyModal.setVisible(false);
+      else if (modeModal.visible) modeModal.setVisible(false);
+    });
+  }
+
+  private createModeModal(width: number, height: number, openCampaign: () => void): Phaser.GameObjects.Container {
+    const backdrop = this.add.rectangle(width / 2, height / 2, width, height, 0x020806, .78)
+      .setInteractive({ useHandCursor: true });
+    const cardWidth = Math.min(720, width - 56);
+    const cardHeight = 300;
+    const card = this.add.container(width / 2, height / 2);
+    const blocker = this.add.zone(0, 0, cardWidth, cardHeight).setOrigin(.5).setInteractive();
+    const shadow = this.add.graphics().fillStyle(0x000000, .5)
+      .fillRoundedRect(-cardWidth / 2 + 7, -cardHeight / 2 + 9, cardWidth, cardHeight, 18);
+    const panel = this.add.graphics()
+      .fillGradientStyle(0x1e3328, 0x1a2d24, 0x0c1712, 0x0a130f, 1)
+      .fillRoundedRect(-cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight, 18)
+      .lineStyle(2, 0xb9a768, .9).strokeRoundedRect(-cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight, 18);
+    const title = this.add.text(0, -112, '게임 모드 선택', {
+      fontFamily: 'Georgia, Pretendard, serif', fontSize: '28px', fontStyle: 'bold', color: '#edf0b5',
+      stroke: '#101711', strokeThickness: 4,
+    }).setOrigin(.5);
+    const subtitle = this.add.text(0, -79, '원하는 전장을 선택하세요', {
+      fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: '12px', color: '#aab6a5',
+    }).setOrigin(.5);
+    const close = this.add.text(cardWidth / 2 - 23, -cardHeight / 2 + 18, '×', {
+      fontFamily: 'sans-serif', fontSize: '28px', color: '#d8d1b4',
+    }).setOrigin(.5).setInteractive({ useHandCursor: true });
+    card.add([shadow, panel, blocker, title, subtitle, close]);
+
+    const optionWidth = Math.min(285, (cardWidth - 70) / 2);
+    const campaign = this.createModeButton(-optionWidth / 2 - 10, 28, optionWidth, '⚔', '캠페인 모드',
+      'AI가 지키는 기지를 함락하세요', 0x9fc45a, openCampaign);
+    const versus = this.createModeButton(optionWidth / 2 + 10, 28, optionWidth, '⚑', '1대1 모드',
+      '방을 만들거나 코드로 참가하세요', 0xe0b65e, () => this.scene.start('OnlineLobbyScene'));
+    card.add([campaign, versus]);
+
+    const modal = this.add.container(0, 0, [backdrop, card]).setDepth(210).setVisible(false);
+    backdrop.on('pointerdown', () => modal.setVisible(false));
+    close.on('pointerover', () => close.setColor('#ffffff')).on('pointerout', () => close.setColor('#d8d1b4'))
+      .on('pointerdown', () => modal.setVisible(false));
+    return modal;
+  }
+
+  private createModeButton(
+    x: number,
+    y: number,
+    width: number,
+    icon: string,
+    title: string,
+    description: string,
+    accent: number,
+    action: () => void,
+  ): Phaser.GameObjects.Container {
+    const panel = this.add.graphics()
+      .fillGradientStyle(0x304a39, 0x294132, 0x17271f, 0x122019, 1)
+      .fillRoundedRect(-width / 2, -67, width, 134, 14)
+      .lineStyle(2, accent, .85).strokeRoundedRect(-width / 2, -67, width, 134, 14);
+    const iconText = this.add.text(0, -35, icon, {
+      fontFamily: 'Georgia, serif', fontSize: '30px', color: `#${accent.toString(16).padStart(6, '0')}`,
+    }).setOrigin(.5);
+    const titleText = this.add.text(0, 2, title, {
+      fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: '21px', fontStyle: 'bold', color: '#fff8df',
+    }).setOrigin(.5);
+    const descriptionText = this.add.text(0, 34, description, {
+      fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: '11px', color: '#c2ccb9',
+      align: 'center', wordWrap: { width: width - 30 },
+    }).setOrigin(.5);
+    const hitArea = this.add.zone(0, 0, width, 134).setInteractive({ useHandCursor: true });
+    const button = this.add.container(x, y, [panel, iconText, titleText, descriptionText, hitArea]);
+    hitArea.on('pointerover', () => button.setScale(1.035))
+      .on('pointerout', () => button.setScale(1))
+      .on('pointerdown', action);
+    return button;
   }
 
   private createLogoutButton(x: number, y: number): void {

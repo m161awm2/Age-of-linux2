@@ -9,6 +9,7 @@ import { TutorialScene } from './scenes/TutorialScene';
 import { RankScene } from './scenes/RankScene';
 import { AuthScene } from './scenes/AuthScene';
 import { DeviceService } from './services/DeviceService';
+import { OnlineLobbyScene } from './scenes/OnlineLobbyScene';
 
 const mobileDevice = DeviceService.isMobile();
 DeviceService.setupOrientationGuard();
@@ -27,7 +28,7 @@ const config: Phaser.Types.Core.GameConfig = {
     autoCenter: Phaser.Scale.CENTER_BOTH,
     min: mobileDevice ? { width: 568, height: 320 } : { width: 720, height: 480 },
   },
-  scene: [BootScene, AuthScene, StartScene, TutorialScene, CodexScene, RankScene, GameScene, ResultScene],
+  scene: [BootScene, AuthScene, StartScene, OnlineLobbyScene, TutorialScene, CodexScene, RankScene, GameScene, ResultScene],
   input: { mouse: { preventDefaultWheel: true }, touch: { capture: true } },
 };
 

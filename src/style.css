@@ -165,6 +165,45 @@ kbd {
 .chat-form button:hover:not(:disabled) { filter: brightness(1.14); }
 .chat-form button:disabled, .chat-form input:disabled { opacity: .58; }
 
+.online-lobby-screen { position: fixed; inset: 0; z-index: 8500; display: grid; place-items: center; padding: 24px; background: rgba(3, 9, 7, .34); backdrop-filter: blur(5px); }
+.online-lobby-card { position: relative; width: min(620px, 90vw); min-height: 500px; padding: 34px 42px 30px; overflow: hidden; border: 1px solid #ad9b60; border-radius: 22px; text-align: center; background: linear-gradient(145deg, rgba(29, 50, 39, .98), rgba(9, 19, 14, .99)); box-shadow: 0 28px 90px rgba(0, 0, 0, .68), inset 0 1px rgba(255, 255, 255, .08); }
+.online-back { position: absolute; top: 18px; left: 18px; height: 34px; padding: 0 11px; border: 1px solid rgba(187, 175, 119, .42); border-radius: 8px; color: #d9d2b0; background: rgba(8, 18, 13, .55); font-size: 11px; font-weight: 800; cursor: pointer; }
+.online-back:hover:not(:disabled) { color: #fff4c8; border-color: #b9ce76; }
+.online-kicker { margin: 4px 0 7px; color: #a4bd72; font: 800 10px/1 monospace; letter-spacing: .18em; }
+.online-lobby-card h1 { margin: 0; color: #eff2bd; font: 900 32px/1.1 Georgia, Pretendard, serif; }
+.online-description { margin: 10px auto 22px; color: #acb7aa; font-size: 13px; }
+.online-tabs { display: grid; grid-template-columns: 1fr 1fr; margin-bottom: 22px; padding: 4px; border: 1px solid rgba(169, 153, 95, .3); border-radius: 11px; background: rgba(3, 10, 7, .42); }
+.online-tabs button { height: 42px; border: 0; border-radius: 8px; color: #9fa99f; background: transparent; font-weight: 800; cursor: pointer; }
+.online-tabs button.active { color: #fff2bd; background: #314c3b; box-shadow: inset 0 0 0 1px rgba(197, 215, 132, .35); }
+.online-view { display: grid; justify-items: center; min-height: 260px; align-content: center; padding: 22px; border: 1px solid rgba(144, 164, 111, .24); border-radius: 15px; background: rgba(5, 13, 9, .3); }
+.online-mode-icon { color: #d9cd77; font: 38px/1 Georgia, serif; text-shadow: 0 5px 18px rgba(218, 198, 99, .24); }
+.online-view h2 { margin: 13px 0 5px; color: #edf0c2; font-size: 22px; }
+.online-view p { max-width: 390px; margin: 0 0 20px; color: #9eaa9f; font-size: 12px; line-height: 1.55; }
+.online-view input { width: min(270px, 90%); height: 56px; margin: 0 0 12px; border: 1px solid #6d795a; border-radius: 10px; outline: 0; color: #fff0aa; background: #08140f; font: 900 25px/1 monospace; letter-spacing: .28em; text-align: center; text-transform: uppercase; }
+.online-view input:focus { border-color: #c1d378; box-shadow: 0 0 0 3px rgba(174, 201, 106, .12); }
+.online-primary, .online-secondary { min-width: 190px; height: 48px; border-radius: 10px; font-weight: 900; cursor: pointer; }
+.online-primary { border: 1px solid #c4d77b; color: #fff7d5; background: linear-gradient(180deg, #527039, #344c2b); }
+.online-secondary { border: 1px solid #877c59; color: #dcd4b8; background: #26372e; }
+.online-primary:hover:not(:disabled), .online-secondary:hover:not(:disabled) { filter: brightness(1.14); transform: translateY(-1px); }
+.online-lobby-card button:disabled, .online-lobby-card input:disabled { opacity: .58; cursor: wait; }
+.online-status { min-height: 19px; margin: 13px 0 0; color: #cbdc9c; font-size: 12px; }
+.online-status.error { color: #ff9e8d; }
+.online-room { min-height: 305px; padding: 18px 24px; border: 1px solid rgba(170, 188, 117, .28); border-radius: 15px; background: rgba(4, 12, 8, .38); }
+.room-role { margin: 0 0 13px; color: #a8b7a8; font-size: 12px; }
+.room-code-label { display: block; color: #839083; font-size: 9px; font-weight: 900; letter-spacing: .14em; }
+.room-code { margin: 4px 0 18px; padding: 3px 12px 5px; border: 0; color: #f7dc78; background: transparent; font: 900 34px/1 monospace; letter-spacing: .18em; cursor: copy; }
+.room-players { display: grid; grid-template-columns: 1fr 42px 1fr; align-items: center; gap: 9px; }
+.room-players > div { display: grid; min-height: 92px; align-content: center; padding: 10px; border: 1px solid #526958; border-radius: 11px; background: #182b21; }
+.room-players > div:last-child { border-style: dashed; opacity: .72; }
+.online-room.room-full .room-players > div:last-child { border-style: solid; border-color: #a6c66c; opacity: 1; }
+.room-players span { color: #d4bd63; font: 900 10px/1 monospace; }
+.room-players strong { margin: 7px 0 4px; overflow: hidden; color: #f0edd2; font-size: 15px; text-overflow: ellipsis; }
+.room-players small { color: #8d9a8e; font-size: 10px; }
+.room-players b { color: #d5c889; font: 900 14px/1 Georgia, serif; }
+.room-waiting { min-height: 18px; margin: 15px 0; color: #aebb9f; font-size: 11px; }
+.online-room.room-full .room-waiting { color: #cce596; }
+.hidden { display: none !important; }
+
 @media (max-width: 980px) {
   .hud-top { grid-template-columns: 150px 105px 1fr 65px; padding-inline: 10px; }
   .hud-brand { font-size: 14px; }
@@ -246,4 +285,26 @@ kbd {
   .mobile-device .promotion-options { gap: 5px; }
   .mobile-device .promotion-option { min-height: 43px; grid-template-columns: 27px 105px 1fr 43px; gap: 6px; padding: 5px 8px; font-size: 10px; }
   .mobile-device .promotion-option span { font-size: 9px; }
+
+  .mobile-device .online-lobby-screen { padding: 7px; }
+  .mobile-device .online-lobby-card { width: min(690px, 94vw); min-height: 0; height: 94vh; padding: 15px 30px 10px; }
+  .mobile-device .online-back { top: 9px; left: 10px; height: 28px; font-size: 9px; }
+  .mobile-device .online-kicker { margin: 0 0 3px; font-size: 8px; }
+  .mobile-device .online-lobby-card h1 { font-size: 23px; }
+  .mobile-device .online-description { margin: 3px auto 7px; font-size: 10px; }
+  .mobile-device .online-tabs { width: 70%; margin: 0 auto 7px; }
+  .mobile-device .online-tabs button { height: 31px; font-size: 11px; }
+  .mobile-device .online-view { min-height: 210px; padding: 8px; }
+  .mobile-device .online-mode-icon { font-size: 25px; }
+  .mobile-device .online-view h2 { margin: 5px 0 2px; font-size: 17px; }
+  .mobile-device .online-view p { margin-bottom: 7px; font-size: 9px; }
+  .mobile-device .online-view input { height: 39px; margin-bottom: 6px; font-size: 18px; }
+  .mobile-device .online-primary, .mobile-device .online-secondary { min-width: 150px; height: 34px; font-size: 10px; }
+  .mobile-device .online-room { min-height: 0; padding: 7px 18px; }
+  .mobile-device .room-role { margin-bottom: 3px; font-size: 9px; }
+  .mobile-device .room-code { margin: 1px 0 4px; font-size: 24px; }
+  .mobile-device .room-players > div { min-height: 55px; padding: 4px; }
+  .mobile-device .room-players strong { margin: 3px 0 1px; font-size: 11px; }
+  .mobile-device .room-waiting { margin: 5px 0; font-size: 9px; }
+  .mobile-device .online-status { margin-top: 4px; font-size: 9px; }
 }
