@@ -17,6 +17,42 @@ const alphaThreshold = 32;
 const dryRun = process.argv.includes('--dry-run');
 const neighbors = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
+const findLargestFrameComponent = (data, sheetWidth, column, row) => {
+  const visited = new Uint8Array(frameWidth * frameHeight);
+  let largest = null;
+  for (let y = 0; y < frameHeight; y += 1) {
+    for (let x = 0; x < frameWidth; x += 1) {
+      const local = y * frameWidth + x;
+      const source = (((row * frameHeight) + y) * sheetWidth + column * frameWidth + x) * 4;
+      if (visited[local] || data[source + 3] <= alphaThreshold) continue;
+      const queue = [local];
+      let queueIndex = 0;
+      let pixels = 0;
+      let maxY = y;
+      visited[local] = 1;
+      while (queueIndex < queue.length) {
+        const current = queue[queueIndex++];
+        const currentX = current % frameWidth;
+        const currentY = Math.floor(current / frameWidth);
+        pixels += 1;
+        maxY = Math.max(maxY, currentY);
+        for (const [dx, dy] of neighbors) {
+          const nextX = currentX + dx;
+          const nextY = currentY + dy;
+          if (nextX < 0 || nextX >= frameWidth || nextY < 0 || nextY >= frameHeight) continue;
+          const next = nextY * frameWidth + nextX;
+          const nextSource = (((row * frameHeight) + nextY) * sheetWidth + column * frameWidth + nextX) * 4;
+          if (visited[next] || data[nextSource + 3] <= alphaThreshold) continue;
+          visited[next] = 1;
+          queue.push(next);
+        }
+      }
+      if (!largest || pixels > largest.pixels) largest = { pixels, maxY };
+    }
+  }
+  return largest;
+};
+
 const distanceBetweenBounds = (first, second) => {
   const dx = Math.max(first.minX - second.maxX, second.minX - first.maxX, 0);
   const dy = Math.max(first.minY - second.maxY, second.minY - first.maxY, 0);
@@ -137,9 +173,11 @@ for (const name of (await readdir(unitDirectory)).filter((file) => file.endsWith
         }
       }
       const anchorX = anchorSum / anchorPixels;
-      if (minX <= 0 || maxX >= frameWidth - 1 || maxY !== targetBaselineY || Math.abs(anchorX - targetAnchorX) > 1) {
+      const body = findLargestFrameComponent(data, info.width, column, row);
+      if (!body || minX <= 0 || maxX >= frameWidth - 1 || maxY !== targetBaselineY ||
+          body.maxY !== targetBaselineY || Math.abs(anchorX - targetAnchorX) > 1) {
         throw new Error(`${name} frame ${frame}: 정규화 검증 실패 [${minX}-${maxX}], ` +
-          `anchor=${anchorX.toFixed(1)}, baseline=${maxY}`);
+          `anchor=${anchorX.toFixed(1)}, baseline=${maxY}, bodyBaseline=${body?.maxY ?? '없음'}`);
       }
     }
     console.log(`${name}\t${info.width}×${info.height}\t정규화 검증 완료`);
@@ -180,14 +218,20 @@ for (const name of (await readdir(unitDirectory)).filter((file) => file.endsWith
           closestDistance = distance;
         }
       });
-      if (closestDistance <= sourceFrameWidth * .45) groups[closest].push(component);
+      // 본체의 발보다 아래에 완전히 떨어진 조각은 인접 프레임에서 넘어온 잔상이다.
+      // 이를 포함하면 조각이 기준선이 되거나 본체 정렬 후 캔버스 밖으로 밀린다.
+      if (closestDistance <= sourceFrameWidth * .45 && component.maxY <= bodies[closest].maxY) {
+        groups[closest].push(component);
+      }
     }
 
     groups.forEach((group, column) => {
       const body = bodies[column];
       const layout = getGroupLayout(group);
       const dx = Math.round(targetAnchorX - layout.anchorX);
-      const dy = targetBaselineY - layout.maxY;
+      // 분리된 무기 끝이나 효과 조각이 본체보다 아래에 있을 수 있으므로,
+      // 전체 그룹이 아니라 가장 큰 본체의 발 위치를 지면 기준으로 맞춘다.
+      const dy = targetBaselineY - body.maxY;
       let minOutputX = frameWidth;
       let maxOutputX = -1;
       let minOutputY = frameHeight;
