@@ -4,6 +4,7 @@ import { UNITS } from '../data/units';
 import type { Difficulty } from '../data/types';
 import { AudioService } from '../services/AudioService';
 import { RankService, type LeaderboardEntry } from '../services/RankService';
+import { UNIT_SHEET_BY_KEY } from '../assets/manifest';
 
 const DIFFICULTY_COLORS: Record<Difficulty, number> = {
   Easy: 0x4fa56b,
@@ -155,8 +156,13 @@ export class RankScene extends Phaser.Scene {
     visible.forEach((kind, index) => {
       const unit = UNITS[kind as keyof typeof UNITS];
       if (!unit) return;
+      const layout = UNIT_SHEET_BY_KEY.get(unit.texture);
+      if (!layout) return;
       const spriteX = x + (index - (visible.length - 1) / 2) * gap;
-      const sprite = this.add.sprite(spriteX, y, unit.texture, 0).setDisplaySize(compact ? 46 : 52, compact ? 46 : 52);
+      const targetHeight = compact ? 46 : 52;
+      const scale = targetHeight / layout.frameHeight;
+      const sprite = this.add.sprite(spriteX + layout.frameOffsetX * scale, y + targetHeight / 2, unit.texture, 0)
+        .setOrigin(.5, 1).setScale(scale);
       sprite.play(`${unit.texture}-idle`);
       this.contentObjects.push(sprite);
     });

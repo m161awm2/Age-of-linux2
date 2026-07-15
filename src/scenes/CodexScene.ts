@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { UNIT_SHEET_BY_KEY } from '../assets/manifest';
 import codexDescriptions from '../data/unit-codex.json';
 import type { UnitFamily, UnitKind } from '../data/types';
 import { UNIT_LIST } from '../data/units';
@@ -101,9 +102,11 @@ export class CodexScene extends Phaser.Scene {
       const labelText = this.add.text(x, top + 19, label, {
         fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#dfe9b1',
       }).setOrigin(.5);
-      const spriteScale = Math.min(.46, panelWidth / 362 * .86, (previewHeight - 38) / 362);
-      const sprite = this.add.sprite(x, top + previewHeight - 8, texture, 0)
-        .setOrigin(.5, 340 / 362).setScale(spriteScale);
+      const layout = UNIT_SHEET_BY_KEY.get(texture);
+      if (!layout) return;
+      const spriteScale = Math.min(.46, panelWidth / layout.frameWidth * .96, (previewHeight - 38) / layout.frameHeight);
+      const sprite = this.add.sprite(x + layout.frameOffsetX * spriteScale, top + previewHeight - 8, texture, 0)
+        .setOrigin(.5, 1).setScale(spriteScale);
       const animationKey = animation === 'attack' ? `${texture}-codex-attack` : `${texture}-${animation}`;
       if (animation === 'attack' && !this.anims.exists(animationKey)) {
         this.anims.create({

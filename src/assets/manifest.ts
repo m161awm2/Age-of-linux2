@@ -1,19 +1,32 @@
-interface SpriteAsset {
+export interface SpriteAsset {
   key: string;
   file: string;
   width: number;
   height: number;
   frameWidth: number;
   frameHeight: number;
+  frameOffsetX: number;
+  frameOffsetY: number;
 }
 
-const sheet = (key: string, file: string, width = 1448, height = 1086): SpriteAsset => ({
+export const UNIT_FRAME_WIDTH = 496;
+export const UNIT_FRAME_HEIGHT = 400;
+export const UNIT_FRAME_ANCHOR_X = 204;
+
+const sheet = (
+  key: string,
+  file: string,
+  frameOffsetX = UNIT_FRAME_WIDTH / 2 - UNIT_FRAME_ANCHOR_X,
+  frameOffsetY = 0,
+): SpriteAsset => ({
   key,
   file: `assets/units/${file}`,
-  width,
-  height,
-  frameWidth: width / 4,
-  frameHeight: height / 3,
+  width: UNIT_FRAME_WIDTH * 4,
+  height: UNIT_FRAME_HEIGHT * 3,
+  frameWidth: UNIT_FRAME_WIDTH,
+  frameHeight: UNIT_FRAME_HEIGHT,
+  frameOffsetX,
+  frameOffsetY,
 });
 
 export const UNIT_SHEETS: SpriteAsset[] = [
@@ -26,6 +39,10 @@ export const UNIT_SHEETS: SpriteAsset[] = [
   sheet('halberd', 'halberd.png'), sheet('viking', 'viking.png'), sheet('vikingBerserk', 'viking-berserk.png'),
   sheet('sanada', 'sanada.png'),
 ];
+
+export const UNIT_SHEET_BY_KEY: ReadonlyMap<string, SpriteAsset> = new Map(
+  UNIT_SHEETS.map((asset) => [asset.key, asset]),
+);
 
 export const IMAGE_ASSETS = [
   { key: 'logo', file: 'assets/branding/age-of-linux-logo.png' },

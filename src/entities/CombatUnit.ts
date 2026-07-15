@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { UNIT_SCALE } from '../data/constants';
+import { UNIT_SHEET_BY_KEY, type SpriteAsset } from '../assets/manifest';
 import type { Team, UnitDefinition } from '../data/types';
 import type { BaseEntity } from './BaseEntity';
 
@@ -36,6 +37,7 @@ export class CombatUnit extends Phaser.GameObjects.Container {
   hasStartedCombat = false;
 
   private textureKey: string;
+  private spriteLayout: SpriteAsset;
   private unitState: UnitState = 'idle';
   private readonly chargeFx: Phaser.GameObjects.Graphics;
   private readonly sprite: Phaser.GameObjects.Sprite;
@@ -49,9 +51,10 @@ export class CombatUnit extends Phaser.GameObjects.Container {
     this.hp = definition.hp;
     this.shieldHp = definition.kind === 'shieldGuard' ? 8 : 0;
     this.textureKey = definition.texture;
+    this.spriteLayout = this.getSpriteLayout(this.textureKey);
     this.chargeFx = scene.add.graphics();
-    // 정규화된 모든 프레임의 발 기준선(340px)을 컨테이너 위치에 고정한다.
-    this.sprite = scene.add.sprite(0, 0, this.textureKey, 0).setOrigin(.5, 340 / 362).setScale(UNIT_SCALE);
+    this.sprite = scene.add.sprite(0, 0, this.textureKey, 0);
+    this.lockSpriteGeometry();
     this.sprite.setFlipX(team === 'enemy');
     this.hpBar = scene.add.graphics();
     this.statusText = scene.add.text(0, -130, '', {
@@ -64,6 +67,7 @@ export class CombatUnit extends Phaser.GameObjects.Container {
     scene.add.existing(this);
 
     this.sprite.on(Phaser.Animations.Events.ANIMATION_UPDATE, (_animation: Phaser.Animations.Animation, frame: Phaser.Animations.AnimationFrame) => {
+      this.lockSpriteGeometry();
       if (this.attackLocked && !this.hitApplied && Number(frame.textureFrame) === 10) {
         this.hitApplied = true;
         this.scene.events.emit('unit-hit-frame', this, this.pendingTarget);
@@ -92,6 +96,7 @@ export class CombatUnit extends Phaser.GameObjects.Container {
     if (this.unitState === state && this.sprite.anims.isPlaying) return;
     this.unitState = state;
     this.sprite.play(`${this.textureKey}-${state}`, true);
+    this.lockSpriteGeometry();
   }
 
   startAttack(target: AttackTarget, now: number, intervalOverride?: number): void {
@@ -239,10 +244,26 @@ export class CombatUnit extends Phaser.GameObjects.Container {
   private setVisualTexture(textureKey: string): void {
     if (this.textureKey === textureKey) return;
     this.textureKey = textureKey;
+    this.spriteLayout = this.getSpriteLayout(textureKey);
     this.sprite.setTexture(textureKey, 0);
+    this.lockSpriteGeometry();
     this.sprite.setFlipX(this.team === 'enemy');
     this.unitState = 'idle';
     if (!this.attackLocked) this.playState('idle');
+  }
+
+  private getSpriteLayout(textureKey: string): SpriteAsset {
+    const layout = UNIT_SHEET_BY_KEY.get(textureKey);
+    if (!layout) throw new Error(`스프라이트 레이아웃을 찾을 수 없습니다: ${textureKey}`);
+    return layout;
+  }
+
+  private lockSpriteGeometry(): void {
+    const direction = this.team === 'enemy' ? -1 : 1;
+    this.sprite
+      .setOrigin(.5, 1)
+      .setPosition(direction * this.spriteLayout.frameOffsetX * UNIT_SCALE, this.spriteLayout.frameOffsetY * UNIT_SCALE)
+      .setDisplaySize(this.spriteLayout.frameWidth * UNIT_SCALE, this.spriteLayout.frameHeight * UNIT_SCALE);
   }
 
   private drawHealth(now: number): void {

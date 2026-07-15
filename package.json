@@ -6,7 +6,7 @@
   "scripts": {
     "assets:transparency": "node scripts/remove-baked-backgrounds.mjs",
     "assets:normalize": "node scripts/normalize-sprite-frames.mjs",
-    "assets:prepare": "npm run assets:transparency && npm run assets:normalize",
+    "assets:prepare": "npm run assets:normalize",
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 0.0.0.0"

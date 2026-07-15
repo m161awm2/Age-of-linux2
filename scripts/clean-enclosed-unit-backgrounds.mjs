@@ -3,8 +3,6 @@ import path from 'node:path';
 import sharp from 'sharp';
 
 const targets = ['archer.png', 'chariot.png', 'fire-archer.png'];
-const frameWidth = 362;
-const frameHeight = 362;
 const minimumComponentSize = 80;
 
 const isBackgroundPixel = (data, index) => {
@@ -19,6 +17,11 @@ const isBackgroundPixel = (data, index) => {
 for (const name of targets) {
   const file = path.resolve('public/assets/units', name);
   const { data, info } = await sharp(file).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const frameWidth = info.width / 4;
+  const frameHeight = info.height / 3;
+  if (!Number.isInteger(frameWidth) || !Number.isInteger(frameHeight)) {
+    throw new Error(`${name}: 4×3 프레임으로 나눌 수 없습니다.`);
+  }
   const output = Buffer.from(data);
   let removed = 0;
 

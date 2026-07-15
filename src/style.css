@@ -72,7 +72,7 @@ kbd {
 .unit-button { display: grid; grid-template-columns: 58px minmax(0, 1fr); align-items: center; gap: 5px; padding: 3px 7px 3px 3px; overflow: hidden; }
 .unit-portrait { position: relative; display: none; width: 58px; height: 58px; overflow: hidden; align-self: end; pointer-events: none; }
 .unit-portrait.visible { display: block; }
-.unit-portrait img { position: absolute; top: 0; left: 0; width: 232px; height: 174px; max-width: none; object-fit: fill; }
+.unit-portrait img { position: absolute; top: 0; left: 0; width: 288px; height: 174px; max-width: none; object-fit: fill; }
 .unit-key { position: absolute; z-index: 2; top: 5px; left: 5px; width: 21px; height: 21px; display: grid; place-items: center; border-radius: 5px; background: rgba(13, 23, 18, .9); color: #e4cc73; font: 800 12px monospace; box-shadow: 0 1px 4px rgba(0, 0, 0, .45); }
 .unit-details { min-width: 0; }
 .unit-name { display: block; margin: 1px 0 3px; overflow: hidden; font-weight: 800; font-size: 14px; white-space: nowrap; text-overflow: ellipsis; }
@@ -218,7 +218,7 @@ kbd {
   .hud-bottom { padding-block: 6px; }
   .unit-button, .hud-action { min-height: 50px; }
   .unit-portrait { width: 48px; height: 48px; }
-  .unit-portrait img { width: 192px; height: 144px; }
+  .unit-portrait img { width: 238px; height: 144px; }
   .unit-button { grid-template-columns: 48px minmax(0, 1fr); }
   .camera-controls { top: 62px; }
   .hud-toast { top: 60px; }
@@ -269,7 +269,7 @@ kbd {
   .mobile-device .unit-button, .mobile-device .hud-action { min-height: 45px; border-radius: 7px; }
   .mobile-device .unit-button { grid-template-columns: 39px minmax(0, 1fr); gap: 2px; padding: 2px; }
   .mobile-device .unit-portrait { width: 39px; height: 39px; }
-  .mobile-device .unit-portrait img { width: 156px; height: 117px; }
+  .mobile-device .unit-portrait img { width: 194px; height: 117px; }
   .mobile-device .unit-key { top: 2px; left: 2px; width: 16px; height: 16px; font-size: 9px; }
   .mobile-device .unit-name { margin: 0; font-size: 9px; }
   .mobile-device .unit-cost { font-size: 8px; }
