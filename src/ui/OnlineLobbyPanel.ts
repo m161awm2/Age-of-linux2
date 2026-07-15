@@ -215,8 +215,24 @@ export class OnlineLobbyPanel {
   }
 
   private formatError(error: unknown): string {
-    const message = error instanceof Error ? error.message : String(error);
-    if (/does not exist|schema cache|function/i.test(message)) return '1대1 방 DB 설정이 필요합니다.';
-    return message || '방 처리 중 오류가 발생했습니다.';
+    const record = error && typeof error === 'object' ? error as Record<string, unknown> : null;
+    const message = [
+      error instanceof Error ? error.message : '',
+      record?.message,
+      record?.details,
+      record?.hint,
+    ].find((value): value is string => typeof value === 'string' && value.trim().length > 0)?.trim() ?? '';
+    const code = typeof record?.code === 'string' ? record.code : '';
+
+    if (/schema cache|could not find the function/i.test(message) || code === 'PGRST202') {
+      return '1대1 방 DB 설정이 필요합니다.';
+    }
+    if (/jwt|not authenticated|로그인이 필요/i.test(message) || code === 'PGRST301') {
+      return '로그인 세션이 만료되었습니다. 다시 로그인해 주세요.';
+    }
+    if (/permission denied|insufficient privilege/i.test(message) || code === '42501') {
+      return '방 생성 권한이 없습니다. DB 권한 설정을 확인해 주세요.';
+    }
+    return message || (code ? `방 처리 중 오류가 발생했습니다. (${code})` : '방 처리 중 오류가 발생했습니다.');
   }
 }

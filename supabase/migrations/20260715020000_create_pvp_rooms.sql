@@ -59,7 +59,7 @@ begin
 
   loop
     v_attempt := v_attempt + 1;
-    v_code := upper(substr(encode(gen_random_bytes(4), 'hex'), 1, 6));
+    v_code := upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 6));
     begin
       insert into public.pvp_rooms (code, host_user_id)
       values (v_code, v_user_id)
