@@ -20,6 +20,70 @@ const ALTERNATE_STATES: Partial<Record<UnitKind, { label: string; texture: strin
   dragoon: { label: '근접 모드', texture: 'dragoonMelee' },
 };
 
+type CodexStatKey = 'hp' | 'damage' | 'dps' | 'attackInterval' | 'range' | 'speed' | 'cost';
+
+interface ConditionalStats {
+  condition: string;
+  effects: string[];
+  overrides?: Partial<Record<CodexStatKey, string>>;
+}
+
+const CONDITIONAL_STATS: Partial<Record<UnitKind, ConditionalStats>> = {
+  spearman: {
+    condition: '기병 공격 시',
+    effects: ['공격력 6→10 (×1.8)', '첫 돌격 1회 반격'],
+    overrides: { damage: '6→10*' },
+  },
+  halberd: {
+    condition: '항상 / 기병 공격 시',
+    effects: ['대상 최대 HP의 20% 추가', '기병에게 기본 공격력 8→14 (×1.8)', '첫 돌격 1회 반격'],
+    overrides: { damage: '8+HP 20%*' },
+  },
+  crusader: {
+    condition: '공격 2회 적중마다',
+    effects: ['체력 1 회복'],
+  },
+  shieldGuard: {
+    condition: '방패 8 소진 후',
+    effects: ['공격력 5→7', '롱소드 모드로 전환'],
+    overrides: { damage: '5→7', dps: '5.00→7.00' },
+  },
+  fireArcher: {
+    condition: '불화살 적중 후 1.5초',
+    effects: ['0.5초마다 대상 최대 HP의 5% ×3', '불화살별 독립 중첩'],
+  },
+  wingedHussar: {
+    condition: '8칸 돌진 시',
+    effects: ['이동속도 1.8→2.4배', '첫 충돌 피해 9→14(최대)'],
+    overrides: { damage: '9→14*', speed: '1.8→2.4배' },
+  },
+  dragoon: {
+    condition: '적과 1.5칸 이내',
+    effects: ['총→검 전환', '공격력 8→12', '공격 간격 2→1초', '사거리 6→1.5칸'],
+    overrides: { damage: '8→12', dps: '4.00→12.00', attackInterval: '2→1초', range: '6→1.5칸' },
+  },
+  fenrir: {
+    condition: '원거리 병종 상대',
+    effects: ['공격력 6→8 (×1.4)', '받는 원거리 피해 60%'],
+    overrides: { damage: '6→8*' },
+  },
+  ronin: {
+    condition: '첫 공격',
+    effects: ['공격력 10→20', '선딜 없음', '적 0.4초 기절'],
+    overrides: { damage: '10→20*' },
+  },
+  viking: {
+    condition: 'HP 50% 이하, 최초 1회·7초',
+    effects: ['공격력 19→38', '공격 간격 0.75→0.45초', '이동속도 1.8→2.5배', '받는 피해 40%', '적중 시 HP 1 회복'],
+    overrides: { damage: '19→38', dps: '25.33→84.44', attackInterval: '0.75→0.45초', speed: '1.8→2.5배' },
+  },
+  sanada: {
+    condition: '8칸 돌진 / 패링 준비 시',
+    effects: ['이동속도 1.8→2.4배', '첫 충돌 피해 22→33(최대)', '공격 무효화 후 2배 반격', '패링 재사용 2초'],
+    overrides: { damage: '22→33*', speed: '1.8→2.4배' },
+  },
+};
+
 export class CodexScene extends Phaser.Scene {
   private index = 0;
   private pageObjects: Phaser.GameObjects.GameObject[] = [];
@@ -127,15 +191,17 @@ export class CodexScene extends Phaser.Scene {
       .fillStyle(0x0c1813, .95).fillRoundedRect(78, descriptionTop, width - 156, descriptionHeight, 10)
       .lineStyle(1, 0x7d7047, .7).strokeRoundedRect(78, descriptionTop, width - 156, descriptionHeight, 10)
       .lineStyle(1, 0x89936f, .22).lineBetween(90, descriptionTop + (mobileLandscape ? 34 : 45), width - 90, descriptionTop + (mobileLandscape ? 34 : 45));
+    const conditionalStats = CONDITIONAL_STATS[definition.kind];
+    const overrides = conditionalStats?.overrides ?? {};
     const dps = definition.damage / definition.attackInterval;
     const stats = [
-      { label: '체력', value: `${definition.hp}` },
-      { label: '공격력', value: `${definition.damage}` },
-      { label: 'DPS', value: dps.toFixed(2) },
-      { label: '공격 간격', value: `${definition.attackInterval}초` },
-      { label: '사거리', value: `${definition.rangeTiles}칸` },
-      { label: '이동속도', value: `${definition.speedMultiplier}배` },
-      { label: '생산 비용', value: `${definition.cost}G` },
+      { key: 'hp', label: '체력', value: `${definition.hp}` },
+      { key: 'damage', label: '공격력', value: `${definition.damage}` },
+      { key: 'dps', label: 'DPS', value: dps.toFixed(2) },
+      { key: 'attackInterval', label: '공격 간격', value: `${definition.attackInterval}초` },
+      { key: 'range', label: '사거리', value: `${definition.rangeTiles}칸` },
+      { key: 'speed', label: '이동속도', value: `${definition.speedMultiplier}배` },
+      { key: 'cost', label: '생산 비용', value: `${definition.cost}G` },
     ];
     const statsLeft = 92;
     const statWidth = (width - statsLeft * 2) / stats.length;
@@ -144,18 +210,36 @@ export class CodexScene extends Phaser.Scene {
       const statLabel = this.add.text(statX, descriptionTop + (mobileLandscape ? 4 : 9), stat.label, {
         fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: mobileLandscape ? '7px' : '9px', color: '#8fa095',
       }).setOrigin(.5, 0);
-      const statValue = this.add.text(statX, descriptionTop + (mobileLandscape ? 15 : 23), stat.value, {
-        fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: mobileLandscape ? '10px' : '13px', fontStyle: 'bold', color: '#f0dfa0',
+      const value = overrides[stat.key as CodexStatKey] ?? stat.value;
+      const statValue = this.add.text(statX, descriptionTop + (mobileLandscape ? 15 : 23), value, {
+        fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: mobileLandscape ? '9px' : (value.length > 10 ? '11px' : '13px'),
+        fontStyle: 'bold', color: overrides[stat.key as CodexStatKey] ? '#ffbf69' : '#f0dfa0',
       }).setOrigin(.5, 0);
       this.pageObjects.push(statLabel, statValue);
     });
-    const descriptionLabel = this.add.text(94, descriptionTop + (mobileLandscape ? 39 : 53), '병종 설명', {
+
+    let descriptionLabelOffset = mobileLandscape ? 39 : 53;
+    let descriptionTextOffset = mobileLandscape ? 53 : 73;
+    if (conditionalStats) {
+      const conditionalLabel = this.add.text(94, descriptionTop + (mobileLandscape ? 38 : 53), `상황별 스탯  ·  ${conditionalStats.condition}`, {
+        fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: mobileLandscape ? '9px' : '12px', fontStyle: 'bold', color: '#ffbd65',
+      });
+      const conditionalText = this.add.text(94, descriptionTop + (mobileLandscape ? 51 : 72), conditionalStats.effects.join('  ·  '), {
+        fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: mobileLandscape ? '8px' : `${Math.min(13, width / 72)}px`,
+        color: '#f6dfbb', wordWrap: { width: width - 188 }, lineSpacing: 2, maxLines: 2,
+      });
+      this.pageObjects.push(conditionalLabel, conditionalText);
+      descriptionLabelOffset = mobileLandscape ? 79 : 111;
+      descriptionTextOffset = mobileLandscape ? 92 : 131;
+    }
+
+    const descriptionLabel = this.add.text(94, descriptionTop + descriptionLabelOffset, '병종 설명', {
       fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: mobileLandscape ? '9px' : '12px', fontStyle: 'bold', color: '#d8c978',
     });
-    const descriptionText = this.add.text(94, descriptionTop + (mobileLandscape ? 53 : 73), description, {
+    const descriptionText = this.add.text(94, descriptionTop + descriptionTextOffset, description, {
       fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: `${mobileLandscape ? 9 : Math.min(15, width / 62)}px`,
       color: description === DESCRIPTION_PLACEHOLDER ? '#78847b' : '#e6e2cf',
-      wordWrap: { width: width - 188 }, lineSpacing: mobileLandscape ? 1 : 5, maxLines: mobileLandscape ? 3 : 0,
+      wordWrap: { width: width - 188 }, lineSpacing: mobileLandscape ? 1 : 5, maxLines: mobileLandscape ? (conditionalStats ? 2 : 3) : 0,
     });
     this.pageObjects.push(descriptionPanel, descriptionLabel, descriptionText);
   }
