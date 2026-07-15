@@ -1,4 +1,5 @@
-import { ChatService, type ChatMessage } from '../services/ChatService';
+import { ChatService, type ChatAnnouncement, type ChatMessage } from '../services/ChatService';
+import { AuthService } from '../services/AuthService';
 
 export class HomeChatPanel {
   private readonly root: HTMLElement;
@@ -7,6 +8,9 @@ export class HomeChatPanel {
   private readonly input: HTMLInputElement;
   private readonly submit: HTMLButtonElement;
   private readonly status: HTMLParagraphElement;
+  private readonly announcement: HTMLElement;
+  private readonly announcementForm: HTMLFormElement;
+  private readonly announcementInput: HTMLInputElement;
   private readonly refreshTimer: number;
   private loading = false;
 
@@ -20,6 +24,13 @@ export class HomeChatPanel {
         <span class="chat-live">LIVE</span><button class="chat-toggle" type="button" aria-label="채팅 열기">⌃</button>
       </header>
       <p class="chat-description">팁 공유를 위한 채팅창입니다</p>
+      <section class="chat-announcement hidden" aria-live="polite">
+        <div><span>공지</span><strong></strong><time></time></div><p></p>
+      </section>
+      <form class="chat-announcement-form hidden">
+        <input name="announcement" type="text" maxlength="200" autocomplete="off" placeholder="채팅 상단 공지 작성" aria-label="채팅 공지">
+        <button type="submit">공지</button><button type="button" data-action="clear-announcement">해제</button>
+      </form>
       <div class="chat-messages" role="log" aria-live="polite"></div>
       <p class="chat-status" role="status"></p>
       <form class="chat-form">
@@ -32,6 +43,9 @@ export class HomeChatPanel {
     this.input = this.form.querySelector<HTMLInputElement>('input')!;
     this.submit = this.form.querySelector<HTMLButtonElement>('button')!;
     this.status = this.root.querySelector<HTMLParagraphElement>('.chat-status')!;
+    this.announcement = this.root.querySelector<HTMLElement>('.chat-announcement')!;
+    this.announcementForm = this.root.querySelector<HTMLFormElement>('.chat-announcement-form')!;
+    this.announcementInput = this.announcementForm.querySelector<HTMLInputElement>('input')!;
     this.root.querySelector<HTMLButtonElement>('.chat-toggle')?.addEventListener('click', () => {
       const expanded = this.root.classList.toggle('expanded');
       const toggle = this.root.querySelector<HTMLButtonElement>('.chat-toggle')!;
@@ -40,6 +54,10 @@ export class HomeChatPanel {
       if (expanded) void this.refresh(true);
     });
     this.form.addEventListener('submit', (event) => void this.handleSubmit(event));
+    this.announcementForm.addEventListener('submit', (event) => void this.handleAnnouncement(event));
+    this.announcementForm.querySelector<HTMLButtonElement>('[data-action="clear-announcement"]')!
+      .addEventListener('click', () => void this.clearAnnouncement());
+    void this.configureAnnouncementEditor();
     void this.refresh(true);
     this.refreshTimer = window.setInterval(() => void this.refresh(), 4000);
   }
@@ -54,8 +72,9 @@ export class HomeChatPanel {
     this.loading = true;
     const nearBottom = this.messageList.scrollHeight - this.messageList.scrollTop - this.messageList.clientHeight < 45;
     try {
-      const messages = await ChatService.getMessages();
+      const [messages, announcement] = await Promise.all([ChatService.getMessages(), ChatService.getAnnouncement()]);
       this.renderMessages(messages);
+      this.renderAnnouncement(announcement);
       this.status.textContent = '';
       if (forceScroll || nearBottom) this.messageList.scrollTop = this.messageList.scrollHeight;
     } catch (error) {
@@ -63,6 +82,52 @@ export class HomeChatPanel {
       this.status.textContent = '채팅 서버를 준비 중이거나 연결할 수 없습니다.';
     } finally {
       this.loading = false;
+    }
+  }
+
+  private async configureAnnouncementEditor(): Promise<void> {
+    const loginId = (await AuthService.getLoginId())?.toLowerCase();
+    this.announcementForm.classList.toggle('hidden', loginId !== 'admin' && loginId !== 'm161awm');
+  }
+
+  private renderAnnouncement(announcement: ChatAnnouncement | null): void {
+    this.announcement.classList.toggle('hidden', !announcement);
+    if (!announcement) return;
+    this.announcement.querySelector<HTMLElement>('strong')!.textContent = announcement.login_id;
+    this.announcement.querySelector<HTMLElement>('p')!.textContent = announcement.message;
+    const time = this.announcement.querySelector<HTMLTimeElement>('time')!;
+    time.dateTime = announcement.updated_at;
+    time.textContent = this.formatTime(announcement.updated_at);
+    if (!this.announcementForm.classList.contains('hidden') && document.activeElement !== this.announcementInput) {
+      this.announcementInput.value = announcement.message;
+    }
+  }
+
+  private async handleAnnouncement(event: SubmitEvent): Promise<void> {
+    event.preventDefault();
+    const message = this.announcementInput.value.trim();
+    if (!message) { this.status.textContent = '공지 내용을 입력하세요.'; return; }
+    await this.saveAnnouncement(message, '공지를 등록했습니다.');
+  }
+
+  private async clearAnnouncement(): Promise<void> {
+    await this.saveAnnouncement('', '공지를 해제했습니다.');
+    this.announcementInput.value = '';
+  }
+
+  private async saveAnnouncement(message: string, successMessage: string): Promise<void> {
+    const controls = this.announcementForm.querySelectorAll<HTMLInputElement | HTMLButtonElement>('input, button');
+    controls.forEach((control) => { control.disabled = true; });
+    this.status.textContent = '공지 처리 중…';
+    try {
+      await ChatService.setAnnouncement(message);
+      await this.refresh();
+      this.status.textContent = successMessage;
+    } catch (error) {
+      const text = error && typeof error === 'object' && 'message' in error ? String(error.message) : '';
+      this.status.textContent = text || '공지 처리에 실패했습니다.';
+    } finally {
+      controls.forEach((control) => { control.disabled = false; });
     }
   }
 
