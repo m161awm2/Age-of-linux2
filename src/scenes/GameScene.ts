@@ -52,6 +52,7 @@ export class GameScene extends Phaser.Scene {
   private lastPvpEventId = 0;
   private readonly appliedPvpEvents = new Set<number>();
   private readonly pvpUnits = new Map<number, CombatUnit>();
+  private pvpEmergencySupplyClaimed = false;
 
   constructor() { super('GameScene'); }
 
@@ -77,6 +78,7 @@ export class GameScene extends Phaser.Scene {
     this.lastPvpEventId = 0;
     this.appliedPvpEvents.clear();
     this.pvpUnits.clear();
+    this.pvpEmergencySupplyClaimed = false;
   }
 
   create(): void {
@@ -132,6 +134,7 @@ export class GameScene extends Phaser.Scene {
       this.payBountiesAndRemoveDead();
     }
     if (!this.pvp) this.applyEnemyBaseSupply();
+    else this.applyPvpEmergencySupply();
     this.updateHud(elapsed);
 
     if (this.enemyBase.hp <= 0) this.finish(this.localTeam === 'player', elapsed);
@@ -434,6 +437,15 @@ export class GameScene extends Phaser.Scene {
       this.lastEnemySupplyHp -= 50;
       this.hud.message('적군이 기지 피해 보급 20G를 받았습니다!');
     }
+  }
+
+  private applyPvpEmergencySupply(): void {
+    if (!this.pvp || this.pvpEmergencySupplyClaimed) return;
+    const localBase = this.localTeam === 'player' ? this.playerBase : this.enemyBase;
+    if (localBase.hp <= 0 || localBase.hp > localBase.maxHp * .5) return;
+    this.pvpEmergencySupplyClaimed = true;
+    this.economy.reward(30);
+    this.hud.message('성 체력이 50% 이하로 떨어져 긴급 보급 30G를 받았습니다!');
   }
 
   private updateHud(elapsedSeconds: number): void {
