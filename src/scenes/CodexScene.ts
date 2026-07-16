@@ -107,7 +107,7 @@ const CONDITIONAL_STATS: Partial<Record<UnitKind, ConditionalStats>> = {
   },
   siphonarioi: {
     condition: '전방 3칸 내 적 인식',
-    effects: ['공격 범위 전방 4칸', '이동속도 30% 감소', '1초 점화 준비', '0.5초마다 범위 피해', '적중 시 25% 확률로 중첩 화상'],
+    effects: ['공격 범위 전방 4칸', '이동속도 30% 감소', '1초 점화 준비', '0.5초마다 범위 피해', '적중 시 50% 확률로 중첩 화상'],
     overrides: { range: '인식 3 / 공격 4칸' },
   },
   wingedHussar: {

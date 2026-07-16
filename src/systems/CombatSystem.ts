@@ -173,7 +173,7 @@ export class CombatSystem {
       const dealt = target.takeDamage(damage, now);
       target.showDamage(damage, chargeBonus > 0 ? '#ffd45c' : '#fff1b4');
       const appliesBurn = attacker.definition.kind === 'fireArcher'
-        || (attacker.definition.kind === 'siphonarioi' && Math.random() < .25);
+        || (attacker.definition.kind === 'siphonarioi' && Math.random() < .5);
       if (appliesBurn && dealt > 0 && target.alive) target.applyBurnStack();
       if (isIaiStrike && target.alive) target.applyStun(now, 400);
       if (attacker.definition.kind === 'viking' && dealt > 0) attacker.heal(1);
