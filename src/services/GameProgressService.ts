@@ -16,11 +16,11 @@ export class GameProgressService {
     this[family] = kind;
   }
 
-  applySecondInfantryPromotion(): UnitKind | null {
+  applySecondPromotion(family: 'infantry' | 'archer'): UnitKind | null {
     if (!this.allFirstPromotionsComplete) return null;
-    const next = SECOND_PROMOTIONS[this.infantry];
+    const next = SECOND_PROMOTIONS[this[family]];
     if (!next) return null;
-    this.infantry = next;
+    this[family] = next;
     return next;
   }
 

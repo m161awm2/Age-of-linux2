@@ -5,7 +5,7 @@ import type { BaseEntity } from '../entities/BaseEntity';
 import { CombatUnit, type AttackTarget } from '../entities/CombatUnit';
 
 const CAVALRY = new Set(['knight', 'chariot', 'wingedHussar', 'dragoon']);
-const RANGED = new Set(['archer', 'musketeer', 'javelin', 'fireArcher', 'dragoon']);
+const RANGED = new Set(['archer', 'musketeer', 'gatlingGunner', 'javelin', 'retiarius', 'fireArcher', 'siphonarioi', 'dragoon']);
 const FRONT_TARGETERS = new Set([
   'soldier', 'spearman', 'halberd', 'paladin', 'crusader', 'spartan', 'shieldGuard',
   'knight', 'chariot', 'wingedHussar', 'dragoon', 'fenrir', 'ronin', 'viking', 'sanada',
@@ -20,8 +20,21 @@ export class CombatSystem {
 
   update(units: CombatUnit[], enemies: CombatUnit[], enemyBase: BaseEntity, now: number): void {
     for (const unit of units) {
-      if (!unit.alive || unit.isStunned || unit.attackLocked) continue;
+      if (!unit.alive || unit.isStunned) continue;
+      if (unit.definition.kind === 'gatlingGunner') {
+        this.updateGatling(unit, enemies, enemyBase, now);
+        continue;
+      }
+      if (unit.definition.kind === 'siphonarioi') {
+        this.updateSiphonarioi(unit, enemies, enemyBase, now);
+        continue;
+      }
+      if (unit.attackLocked) continue;
       const target = this.findTarget(unit, enemies);
+      if (unit.definition.kind === 'retiarius') {
+        this.updateRetiarius(unit, target ?? (this.canAttackBase(unit, enemyBase) ? enemyBase : null), now);
+        continue;
+      }
       if (target) {
         const distance = Math.abs(target.x - unit.x);
         const dragoonMelee = unit.definition.kind === 'dragoon' && distance <= 1.5 * TILE_SIZE;
@@ -36,6 +49,55 @@ export class CombatSystem {
         unit.setDragoonMode(false);
       }
     }
+  }
+
+  private updateGatling(unit: CombatUnit, enemies: CombatUnit[], enemyBase: BaseEntity, now: number): void {
+    const target: AttackTarget | null = this.findTarget(unit, enemies)
+      ?? (this.canAttackBase(unit, enemyBase) ? enemyBase : null);
+    if (!target) {
+      unit.stopChannel();
+      return;
+    }
+    unit.startChannel('gatling', now, 650);
+    if (!unit.consumeChannelTick(now, unit.definition.attackInterval)) return;
+    this.flashAttack(unit, target);
+    if (target instanceof CombatUnit) this.applyUnitDamage(unit, target);
+    else this.applyBaseDamage(unit, target);
+  }
+
+  private updateRetiarius(unit: CombatUnit, target: AttackTarget | null, now: number): void {
+    if (!target) return;
+    const distance = Math.abs(target.x - unit.x);
+    const meleeRange = target instanceof CombatUnit ? 1.5 * TILE_SIZE : 2.1 * TILE_SIZE;
+    if (distance <= meleeRange) {
+      unit.setRetiariusMode(true);
+      this.prepareOpeningAttack(unit, now, unit.definition.attackInterval);
+      unit.startAttack(target, now);
+      return;
+    }
+    unit.setRetiariusMode(false);
+    if (unit.retiariusThrown) return;
+    this.prepareOpeningAttack(unit, now, unit.definition.attackInterval);
+    unit.startAttack(target, now);
+    if (unit.attackLocked) unit.retiariusThrown = true;
+  }
+
+  private updateSiphonarioi(unit: CombatUnit, enemies: CombatUnit[], enemyBase: BaseEntity, now: number): void {
+    const direction = unit.team === 'player' ? 1 : -1;
+    const targets = enemies.filter((enemy) => enemy.alive
+      && direction * (enemy.x - unit.x) >= -18
+      && Math.abs(enemy.x - unit.x) <= unit.definition.rangeTiles * TILE_SIZE + 18);
+    const baseInRange = this.canAttackBase(unit, enemyBase);
+    if (targets.length === 0 && !baseInRange) {
+      unit.stopChannel();
+      return;
+    }
+    unit.startChannel('flame', now, 800);
+    if (!unit.consumeChannelTick(now, unit.definition.attackInterval)) return;
+    targets.forEach((target) => {
+      if (target.alive) this.applyUnitDamage(unit, target);
+    });
+    if (baseInRange) this.applyBaseDamage(unit, enemyBase);
   }
 
   hasTargetInRange(unit: CombatUnit, enemies: CombatUnit[]): boolean {
@@ -172,8 +234,12 @@ export class CombatSystem {
   }
 
   private flashAttack(attacker: CombatUnit, target: AttackTarget): void {
-    if (!attacker.definition.ranged || attacker.isDragoonMelee) return;
-    const color = attacker.definition.kind === 'fireArcher' ? 0xff7b32 : attacker.definition.kind === 'musketeer' || attacker.definition.kind === 'dragoon' ? 0xffe2a1 : 0xd9c28f;
+    if (!attacker.definition.ranged || attacker.isDragoonMelee || attacker.isRetiariusMelee || attacker.definition.kind === 'siphonarioi') return;
+    const color = attacker.definition.kind === 'fireArcher'
+      ? 0xff7b32
+      : attacker.definition.kind === 'musketeer' || attacker.definition.kind === 'gatlingGunner' || attacker.definition.kind === 'dragoon'
+        ? 0xffe2a1
+        : 0xd9c28f;
     const graphics = this.scene.add.graphics().setDepth(40);
     graphics.lineStyle(4, color, .95).lineBetween(attacker.x, attacker.y - 70, target.x, target.y - 65);
     const spark = this.scene.add.circle(target.x, target.y - 65, 8, color, .9).setDepth(41);

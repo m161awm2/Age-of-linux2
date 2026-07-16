@@ -390,8 +390,10 @@ export class GameScene extends Phaser.Scene {
     else if (this.progress.archer === 'archer') { kinds = PROMOTION_OPTIONS.archer; cost = PROMOTION_COSTS.archer; }
     else if (this.progress.cavalry === 'knight') { kinds = PROMOTION_OPTIONS.cavalry; cost = PROMOTION_COSTS.cavalry; }
     else {
-      const second = SECOND_PROMOTIONS[this.progress.infantry];
-      if (second) { kinds = [second]; cost = PROMOTION_COSTS.secondInfantry; }
+      const secondInfantry = SECOND_PROMOTIONS[this.progress.infantry];
+      const secondArcher = SECOND_PROMOTIONS[this.progress.archer];
+      if (secondInfantry) { kinds = [secondInfantry]; cost = PROMOTION_COSTS.secondInfantry; }
+      else if (secondArcher) { kinds = [secondArcher]; cost = PROMOTION_COSTS.secondArcher; }
     }
     return kinds.map((kind, index) => ({
       id: `normal:${kind}`, hotkey: `${index + 6}`, label: UNITS[kind].name, cost,
@@ -422,12 +424,16 @@ export class GameScene extends Phaser.Scene {
       if (PROMOTION_OPTIONS.infantry.includes(rawKind)) cost = PROMOTION_COSTS.infantry;
       else if (PROMOTION_OPTIONS.archer.includes(rawKind)) cost = PROMOTION_COSTS.archer;
       else if (PROMOTION_OPTIONS.cavalry.includes(rawKind)) cost = PROMOTION_COSTS.cavalry;
-      else cost = PROMOTION_COSTS.secondInfantry;
+      else if (Object.values(SECOND_PROMOTIONS).includes(rawKind)) {
+        const archerSecond = SECOND_PROMOTIONS[this.progress.archer] === rawKind;
+        cost = archerSecond ? PROMOTION_COSTS.secondArcher : PROMOTION_COSTS.secondInfantry;
+      }
       if (!this.economy.spend(cost)) return;
       if (PROMOTION_OPTIONS.infantry.includes(rawKind)) this.progress.setFirstPromotion('infantry', rawKind);
       else if (PROMOTION_OPTIONS.archer.includes(rawKind)) this.progress.setFirstPromotion('archer', rawKind);
       else if (PROMOTION_OPTIONS.cavalry.includes(rawKind)) this.progress.setFirstPromotion('cavalry', rawKind);
-      else this.progress.applySecondInfantryPromotion();
+      else if (SECOND_PROMOTIONS[this.progress.infantry] === rawKind) this.progress.applySecondPromotion('infantry');
+      else if (SECOND_PROMOTIONS[this.progress.archer] === rawKind) this.progress.applySecondPromotion('archer');
     } else if (type === 'special' && (rawKind === 'ronin' || rawKind === 'fenrir')) {
       const cost = SPECIAL_UNLOCK_COST[rawKind];
       if (!this.economy.spend(cost)) return;

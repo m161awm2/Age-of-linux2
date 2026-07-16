@@ -33,6 +33,8 @@ export const UNIT_SHEETS: SpriteAsset[] = [
   sheet('soldier', 'soldier.png'), sheet('archer', 'archer.png'), sheet('knight', 'knight.png'),
   sheet('spearman', 'spearman.png'), sheet('paladin', 'paladin.png'), sheet('spartan', 'spartan.png'),
   sheet('javelin', 'javelin.png'), sheet('musketeer', 'musketeer.png'), sheet('fireArcher', 'fire-archer.png'),
+  sheet('gatlingGunner', 'gatling-gunner.png'), sheet('retiariusRanged', 'retiarius-ranged.png'),
+  sheet('retiariusMelee', 'retiarius-melee.png'), sheet('siphonarioi', 'siphonarioi.png'),
   sheet('chariot', 'chariot.png'), sheet('wingedHussar', 'winged-hussar.png'), sheet('dragoon', 'dragoon-ranged.png'),
   sheet('dragoonMelee', 'dragoon-melee.png'), sheet('fenrir', 'fenrir.png'), sheet('ronin', 'ronin.png'),
   sheet('crusader', 'crusader.png'), sheet('shieldGuard', 'shield-guard.png'), sheet('shieldGuardBroken', 'shield-guard-broken.png'),

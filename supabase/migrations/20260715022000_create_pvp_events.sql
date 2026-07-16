@@ -26,7 +26,7 @@ begin
   if v_user_id is null then raise exception '로그인이 필요합니다.'; end if;
   if not (p_unit_kind = any(array[
     'soldier', 'spearman', 'halberd', 'paladin', 'crusader', 'spartan', 'shieldGuard',
-    'archer', 'musketeer', 'javelin', 'fireArcher',
+    'archer', 'musketeer', 'gatlingGunner', 'javelin', 'retiarius', 'fireArcher', 'siphonarioi',
     'knight', 'chariot', 'wingedHussar', 'dragoon',
     'fenrir', 'ronin', 'viking', 'sanada'
   ]::text[])) then raise exception '소환 병종이 올바르지 않습니다.'; end if;

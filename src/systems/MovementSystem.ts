@@ -19,6 +19,7 @@ export class MovementSystem {
         unit.playState('idle');
         return;
       }
+      if (unit.attackLocked) return;
       const allyAhead = index > 0 ? alive[index - 1] : undefined;
       const enemyAhead = liveEnemies[0];
       const direction = unit.team === 'player' ? 1 : -1;

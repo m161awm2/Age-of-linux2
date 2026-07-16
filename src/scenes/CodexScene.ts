@@ -18,6 +18,7 @@ const ALTERNATE_STATES: Partial<Record<UnitKind, { label: string; texture: strin
   viking: { label: '광폭 모드', texture: 'vikingBerserk' },
   shieldGuard: { label: '롱소드 모드', texture: 'shieldGuardBroken' },
   dragoon: { label: '근접 모드', texture: 'dragoonMelee' },
+  retiarius: { label: '근접 3연타', texture: 'retiariusMelee' },
 };
 
 type CodexStatKey = 'hp' | 'damage' | 'dps' | 'attackInterval' | 'range' | 'speed' | 'cost';
@@ -51,6 +52,19 @@ const CONDITIONAL_STATS: Partial<Record<UnitKind, ConditionalStats>> = {
   fireArcher: {
     condition: '불화살 적중 후 1.5초',
     effects: ['0.5초마다 대상 최대 HP의 5% ×3', '불화살별 독립 중첩'],
+  },
+  gatlingGunner: {
+    condition: '적이 사거리 안에 있는 동안',
+    effects: ['제자리 고정', '0.65초 예열 후 0.18초마다 연사'],
+  },
+  retiarius: {
+    condition: '첫 원거리 공격 / 근거리 전환',
+    effects: ['삼지창 1회 투척', '이동속도 1.5배', '근거리 공격 1회당 3연타'],
+    overrides: { damage: '8×3', dps: '26.67', range: '5→1.5칸', speed: '1.5배' },
+  },
+  siphonarioi: {
+    condition: '전방 3칸',
+    effects: ['0.8초 점화 준비', '범위 내 모든 적 공격', '0.3초마다 화염 피해'],
   },
   wingedHussar: {
     condition: '8칸 돌진 시',

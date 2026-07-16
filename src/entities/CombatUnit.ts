@@ -6,6 +6,7 @@ import type { BaseEntity } from './BaseEntity';
 
 export type AttackTarget = CombatUnit | BaseEntity;
 type UnitState = 'idle' | 'move' | 'attack';
+type ChannelKind = 'gatling' | 'flame';
 
 const FULL_CHARGE_TILES = 8;
 const MAX_CHARGE_DAMAGE_BONUS = .5;
@@ -34,7 +35,12 @@ export class CombatUnit extends Phaser.GameObjects.Container {
   chargeDamageTiles = 0;
   chargeGraceUntil = 0;
   isDragoonMelee = false;
+  isRetiariusMelee = false;
+  retiariusThrown = false;
   hasStartedCombat = false;
+  private channelKind: ChannelKind | null = null;
+  private channelReadyAt = 0;
+  private readonly comboHitFrames = new Set<number>();
   private activeBurnStacks = 0;
   private networkTargetX: number | null = null;
 
@@ -44,6 +50,7 @@ export class CombatUnit extends Phaser.GameObjects.Container {
   private unitState: UnitState = 'idle';
   private readonly chargeFx: Phaser.GameObjects.Graphics;
   private readonly sprite: Phaser.GameObjects.Sprite;
+  private readonly flameFx: Phaser.GameObjects.Graphics | null;
   private readonly hpBar: Phaser.GameObjects.Graphics;
   private readonly statusText: Phaser.GameObjects.Text;
 
@@ -60,25 +67,38 @@ export class CombatUnit extends Phaser.GameObjects.Container {
     this.sprite = scene.add.sprite(0, 0, this.textureKey, 0);
     this.lockSpriteGeometry();
     this.sprite.setFlipX(team === 'enemy');
+    this.flameFx = definition.kind === 'siphonarioi'
+      ? scene.add.graphics().setVisible(false)
+      : null;
     this.hpBar = scene.add.graphics();
     this.statusText = scene.add.text(0, -130, '', {
       fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif',
       fontSize: '13px', color: '#fff9dd', stroke: '#16120d', strokeThickness: 4,
     }).setOrigin(.5);
-    this.add([this.chargeFx, this.sprite, this.hpBar, this.statusText]);
+    this.add([this.chargeFx, this.sprite, ...(this.flameFx ? [this.flameFx] : []), this.hpBar, this.statusText]);
     this.setSize(72, 116);
     this.setDepth(20 + Math.round(y));
     scene.add.existing(this);
 
     this.sprite.on(Phaser.Animations.Events.ANIMATION_UPDATE, (_animation: Phaser.Animations.Animation, frame: Phaser.Animations.AnimationFrame) => {
       this.lockSpriteGeometry();
-      if (this.attackLocked && !this.hitApplied && Number(frame.textureFrame) === 10) {
+      const frameNumber = Number(frame.textureFrame);
+      if (this.channelKind) return;
+      if (this.definition.kind === 'retiarius' && this.isRetiariusMelee && this.attackLocked && [9, 10, 11].includes(frameNumber)) {
+        if (this.comboHitFrames.has(frameNumber)) return;
+        this.comboHitFrames.add(frameNumber);
+        this.scene.events.emit('unit-hit-frame', this, this.pendingTarget);
+      } else if (this.attackLocked && !this.hitApplied && frameNumber === 10) {
         this.hitApplied = true;
         this.scene.events.emit('unit-hit-frame', this, this.pendingTarget);
       }
     });
     this.sprite.on(Phaser.Animations.Events.ANIMATION_COMPLETE, (animation: Phaser.Animations.Animation) => {
       if (animation.key.endsWith('-attack')) {
+        if (this.channelKind && this.alive) {
+          this.sprite.play(`${this.textureKey}-attack`, true);
+          return;
+        }
         this.attackLocked = false;
         this.pendingTarget = null;
         if (this.alive) this.playState('idle');
@@ -92,6 +112,7 @@ export class CombatUnit extends Phaser.GameObjects.Container {
   get burnStackCount(): number { return this.activeBurnStacks; }
   get isBerserking(): boolean { return this.definition.kind === 'viking' && this.berserkUntil > this.scene.time.now; }
   get isStunned(): boolean { return this.alive && this.stunnedUntil > this.scene.time.now; }
+  get isChanneling(): boolean { return this.channelKind !== null; }
   get attackDamage(): number {
     return this.definition.damage + (this.definition.kind === 'shieldGuard' && this.shieldHp === 0 ? 2 : 0);
   }
@@ -112,6 +133,7 @@ export class CombatUnit extends Phaser.GameObjects.Container {
     this.attackLocked = true;
     this.pendingTarget = target;
     this.hitApplied = false;
+    this.comboHitFrames.clear();
     this.playState('attack');
     // 낭인의 첫 발도술은 공격 모션은 재생하되 피해 선딜 없이 즉시 적중한다.
     if (instantIaiStrike) {
@@ -120,8 +142,42 @@ export class CombatUnit extends Phaser.GameObjects.Container {
     }
   }
 
+  startChannel(kind: ChannelKind, now: number, warmupMs: number): void {
+    if (!this.alive || this.isStunned) return;
+    if (this.channelKind !== kind) {
+      this.channelKind = kind;
+      this.channelReadyAt = now + warmupMs;
+      this.nextAttackAt = this.channelReadyAt;
+      this.attackLocked = true;
+      this.pendingTarget = null;
+      this.hitApplied = false;
+      this.playState('attack');
+      if (kind === 'flame') {
+        this.flameFx?.setVisible(true);
+      }
+    }
+  }
+
+  consumeChannelTick(now: number, intervalSeconds: number): boolean {
+    if (!this.channelKind || now < this.nextAttackAt) return false;
+    this.nextAttackAt = now + intervalSeconds * 1000;
+    return true;
+  }
+
+  stopChannel(): void {
+    if (!this.channelKind) return;
+    this.channelKind = null;
+    this.channelReadyAt = 0;
+    this.attackLocked = false;
+    this.pendingTarget = null;
+    this.hitApplied = false;
+    this.flameFx?.clear().setVisible(false);
+    if (this.alive) this.playState('idle');
+  }
+
   applyStun(now: number, durationMs: number): void {
     if (!this.alive) return;
+    this.stopChannel();
     this.stunnedUntil = Math.max(this.stunnedUntil, now + durationMs);
     this.attackLocked = false;
     this.pendingTarget = null;
@@ -166,6 +222,12 @@ export class CombatUnit extends Phaser.GameObjects.Container {
     if (this.definition.kind !== 'dragoon' || this.isDragoonMelee === melee) return;
     this.isDragoonMelee = melee;
     this.setVisualTexture(melee ? 'dragoonMelee' : 'dragoon');
+  }
+
+  setRetiariusMode(melee: boolean): void {
+    if (this.definition.kind !== 'retiarius' || this.isRetiariusMelee === melee) return;
+    this.isRetiariusMelee = melee;
+    this.setVisualTexture(melee ? 'retiariusMelee' : 'retiariusRanged');
   }
 
   takeDamage(amount: number, now: number): number {
@@ -239,9 +301,13 @@ export class CombatUnit extends Phaser.GameObjects.Container {
       ? Math.round((this.chargeMultiplier(now) - 1) * 100)
       : 0;
     this.drawChargeFx(chargeBonus);
+    this.drawFlameFx(now);
     const states = [
       this.isStunned ? '기절' : '',
       this.isBerserking ? '광폭' : '',
+      this.channelKind === 'gatling' ? (now < this.channelReadyAt ? '예열' : '연사') : '',
+      this.channelKind === 'flame' ? '화염 분사' : '',
+      this.definition.kind === 'retiarius' && this.retiariusThrown && !this.isRetiariusMelee ? '고속 접근' : '',
       this.canParry(now) ? '패링' : '',
       this.definition.kind === 'shieldGuard' && this.shieldHp === 0 ? '롱소드 +2' : '',
       chargeBonus > 0 ? `돌진 +${chargeBonus}%` : '',
@@ -289,6 +355,57 @@ export class CombatUnit extends Phaser.GameObjects.Container {
     this.chargeFx.lineBetween(direction * 16, -96, direction * (38 + strength * 38), -96);
   }
 
+  private drawFlameFx(now: number): void {
+    if (!this.flameFx) return;
+    this.flameFx.clear();
+    if (this.channelKind !== 'flame') {
+      this.flameFx.setVisible(false);
+      return;
+    }
+    this.flameFx.setVisible(true);
+    const direction = this.team === 'player' ? 1 : -1;
+    const warmedUp = now >= this.channelReadyAt;
+    const pulse = Math.sin(now * .025);
+    const nozzleX = direction * 42;
+    const centerY = -69;
+    const length = warmedUp ? 178 + pulse * 12 : 34 + pulse * 5;
+    const tipX = nozzleX + direction * length;
+    const outerWidth = warmedUp ? 48 + Math.sin(now * .019) * 7 : 15;
+
+    this.flameFx.fillStyle(0xe74313, .72);
+    this.flameFx.beginPath();
+    this.flameFx.moveTo(nozzleX, centerY - 8);
+    this.flameFx.lineTo(tipX, centerY + Math.sin(now * .031) * 10);
+    this.flameFx.lineTo(nozzleX, centerY + 8);
+    this.flameFx.closePath().fillPath();
+
+    this.flameFx.fillStyle(0xff861c, .9);
+    this.flameFx.beginPath();
+    this.flameFx.moveTo(nozzleX, centerY - outerWidth * .45);
+    this.flameFx.lineTo(nozzleX + direction * length * .76, centerY - outerWidth * .32 + pulse * 5);
+    this.flameFx.lineTo(tipX, centerY + Math.sin(now * .027) * 8);
+    this.flameFx.lineTo(nozzleX + direction * length * .7, centerY + outerWidth * .4 - pulse * 4);
+    this.flameFx.lineTo(nozzleX, centerY + outerWidth * .45);
+    this.flameFx.closePath().fillPath();
+
+    this.flameFx.fillStyle(0xffd94a, .96);
+    this.flameFx.beginPath();
+    this.flameFx.moveTo(nozzleX, centerY - 7);
+    this.flameFx.lineTo(nozzleX + direction * length * .62, centerY - 12 + pulse * 3);
+    this.flameFx.lineTo(nozzleX + direction * length * .82, centerY + Math.sin(now * .037) * 5);
+    this.flameFx.lineTo(nozzleX + direction * length * .58, centerY + 12 - pulse * 3);
+    this.flameFx.lineTo(nozzleX, centerY + 7);
+    this.flameFx.closePath().fillPath();
+
+    if (!warmedUp) return;
+    for (let ember = 0; ember < 4; ember += 1) {
+      const phase = now * .006 + ember * 1.7;
+      const distance = 95 + ((now * .11 + ember * 43) % 115);
+      this.flameFx.fillStyle(ember % 2 === 0 ? 0xffb52e : 0xff6120, .75);
+      this.flameFx.fillCircle(nozzleX + direction * distance, centerY + Math.sin(phase) * 25, 3 + ember % 2);
+    }
+  }
+
   private setVisualTexture(textureKey: string): void {
     if (this.textureKey === textureKey) return;
     this.textureKey = textureKey;
@@ -333,6 +450,7 @@ export class CombatUnit extends Phaser.GameObjects.Container {
   }
 
   private die(): void {
+    this.stopChannel();
     this.attackLocked = false;
     this.sprite.stop();
     this.scene.tweens.add({

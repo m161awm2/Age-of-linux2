@@ -4,7 +4,7 @@ export type UnitFamily = 'infantry' | 'archer' | 'cavalry' | 'special';
 
 export type UnitKind =
   | 'soldier' | 'spearman' | 'halberd' | 'paladin' | 'crusader' | 'spartan' | 'shieldGuard'
-  | 'archer' | 'musketeer' | 'javelin' | 'fireArcher'
+  | 'archer' | 'musketeer' | 'gatlingGunner' | 'javelin' | 'retiarius' | 'fireArcher' | 'siphonarioi'
   | 'knight' | 'chariot' | 'wingedHussar' | 'dragoon'
   | 'fenrir' | 'ronin' | 'viking' | 'sanada';
 
