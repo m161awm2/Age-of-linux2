@@ -55,7 +55,7 @@ const CONDITIONAL_STATS: Partial<Record<UnitKind, ConditionalStats>> = {
   },
   gatlingGunner: {
     condition: '적이 사거리 안에 있는 동안',
-    effects: ['제자리 고정', '0.65초 예열 후 0.18초마다 연사'],
+    effects: ['제자리 고정', '0.9초 예열 후 0.28초마다 연사'],
   },
   retiarius: {
     condition: '첫 원거리 공격 / 근거리 전환',
@@ -64,7 +64,7 @@ const CONDITIONAL_STATS: Partial<Record<UnitKind, ConditionalStats>> = {
   },
   siphonarioi: {
     condition: '전방 3칸',
-    effects: ['0.8초 점화 준비', '범위 내 모든 적 공격', '0.3초마다 화염 피해'],
+    effects: ['1초 점화 준비', '범위 내 모든 적 공격', '0.5초마다 화염 피해'],
   },
   wingedHussar: {
     condition: '8칸 돌진 시',

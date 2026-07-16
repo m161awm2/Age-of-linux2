@@ -58,7 +58,7 @@ export class CombatSystem {
       unit.stopChannel();
       return;
     }
-    unit.startChannel('gatling', now, 650);
+    unit.startChannel('gatling', now, 900);
     if (!unit.consumeChannelTick(now, unit.definition.attackInterval)) return;
     this.flashAttack(unit, target);
     if (target instanceof CombatUnit) this.applyUnitDamage(unit, target);
@@ -92,7 +92,7 @@ export class CombatSystem {
       unit.stopChannel();
       return;
     }
-    unit.startChannel('flame', now, 800);
+    unit.startChannel('flame', now, 1000);
     if (!unit.consumeChannelTick(now, unit.definition.attackInterval)) return;
     targets.forEach((target) => {
       if (target.alive) this.applyUnitDamage(unit, target);
