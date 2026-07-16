@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { UNIT_SHEET_BY_KEY } from '../assets/manifest';
+import { PROMOTION_OPTIONS, SECOND_PROMOTIONS, SPECIAL_ELITE } from '../data/constants';
 import codexDescriptions from '../data/unit-codex.json';
 import type { UnitFamily, UnitKind } from '../data/types';
 import { UNIT_LIST } from '../data/units';
@@ -13,6 +14,48 @@ const FAMILY_LABELS: Record<UnitFamily, string> = {
 
 const TIER_LABELS = ['기본 병종', '1차 전직', '2차 전직'] as const;
 const DESCRIPTION_PLACEHOLDER = 'unit-codex.json의 description 항목을 작성해 주세요.';
+
+interface CodexTree {
+  family: UnitFamily;
+  root?: UnitKind;
+  branches: Array<{ first: UnitKind; second?: UnitKind }>;
+}
+
+const CODEX_TREES: CodexTree[] = [
+  {
+    family: 'infantry',
+    root: 'soldier',
+    branches: PROMOTION_OPTIONS.infantry.map((first) => ({ first, second: SECOND_PROMOTIONS[first] })),
+  },
+  {
+    family: 'archer',
+    root: 'archer',
+    branches: PROMOTION_OPTIONS.archer.map((first) => ({ first, second: SECOND_PROMOTIONS[first] })),
+  },
+  {
+    family: 'cavalry',
+    root: 'knight',
+    branches: PROMOTION_OPTIONS.cavalry.map((first) => ({ first })),
+  },
+  {
+    family: 'special',
+    branches: (['fenrir', 'ronin'] as const).map((first) => ({ first, second: SPECIAL_ELITE[first] })),
+  },
+];
+
+const FAMILY_COLORS: Record<UnitFamily, number> = {
+  infantry: 0x91b969,
+  archer: 0x72b6a6,
+  cavalry: 0xd1aa62,
+  special: 0xb98ac9,
+};
+
+const FAMILY_ICONS: Record<UnitFamily, string> = {
+  infantry: '⚔',
+  archer: '🏹',
+  cavalry: '♞',
+  special: '✦',
+};
 
 const ALTERNATE_STATES: Partial<Record<UnitKind, { label: string; texture: string }>> = {
   viking: { label: '광폭 모드', texture: 'vikingBerserk' },
@@ -100,6 +143,8 @@ const CONDITIONAL_STATS: Partial<Record<UnitKind, ConditionalStats>> = {
 
 export class CodexScene extends Phaser.Scene {
   private index = 0;
+  private view: 'gallery' | 'detail' = 'gallery';
+  private selectedTreeFamily: UnitFamily = 'infantry';
   private pageObjects: Phaser.GameObjects.GameObject[] = [];
 
   constructor() { super('CodexScene'); }
@@ -120,25 +165,226 @@ export class CodexScene extends Phaser.Scene {
       color: '#e5eaa9', stroke: '#182019', strokeThickness: 4,
     }).setOrigin(.5);
 
-    this.createNavigationButton(48, height / 2, '‹', () => this.changePage(-1));
-    this.createNavigationButton(width - 48, height / 2, '›', () => this.changePage(1));
     this.createBackButton(width - 72, 45);
 
-    this.input.keyboard?.on('keydown-LEFT', () => this.changePage(-1));
-    this.input.keyboard?.on('keydown-RIGHT', () => this.changePage(1));
-    this.input.keyboard?.on('keydown-ESC', () => this.scene.start('StartScene'));
+    this.input.keyboard?.on('keydown-LEFT', () => { if (this.view === 'detail') this.changePage(-1); });
+    this.input.keyboard?.on('keydown-RIGHT', () => { if (this.view === 'detail') this.changePage(1); });
+    this.input.keyboard?.on('keydown-ESC', () => {
+      if (this.view === 'detail') this.showGallery();
+      else this.scene.start('StartScene');
+    });
 
-    this.showPage();
+    this.showGallery();
+  }
+
+  private clearPage(): void {
+    this.pageObjects.forEach((object) => object.destroy());
+    this.pageObjects = [];
+  }
+
+  private showGallery(): void {
+    this.clearPage();
+    this.view = 'gallery';
+
+    const { width, height } = this.scale;
+    const compact = height < 430;
+    const subtitle = this.add.text(width / 2, compact ? 61 : 65, '왼쪽에서 병과를 선택하고 전직 계보를 확인하세요', {
+      fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: compact ? '9px' : '11px', color: '#aebcad',
+    }).setOrigin(.5);
+    this.pageObjects.push(subtitle);
+
+    const top = compact ? 76 : 82;
+    const bottom = compact ? 15 : 25;
+    const sidebarX = compact ? 65 : 72;
+    const sidebarWidth = compact ? 58 : 68;
+    const sidebarGap = compact ? 5 : 8;
+    const sidebarHeight = height - top - bottom;
+    const buttonHeight = Math.min(compact ? 48 : 62, (sidebarHeight - sidebarGap * 3) / 4);
+    const buttonsHeight = buttonHeight * 4 + sidebarGap * 3;
+    const firstButtonY = top + (sidebarHeight - buttonsHeight) / 2 + buttonHeight / 2;
+
+    CODEX_TREES.forEach((tree, treeIndex) => {
+      this.createFamilyButton(
+        tree.family,
+        sidebarX,
+        firstButtonY + treeIndex * (buttonHeight + sidebarGap),
+        sidebarWidth,
+        buttonHeight,
+        compact,
+      );
+    });
+
+    const tree = CODEX_TREES.find(({ family }) => family === this.selectedTreeFamily) ?? CODEX_TREES[0]!;
+    const panelX = sidebarX + sidebarWidth / 2 + (compact ? 13 : 18);
+    this.createTreePanel(tree, panelX, top, width - panelX - 38, sidebarHeight, true);
+  }
+
+  private createFamilyButton(family: UnitFamily, x: number, y: number, width: number, height: number, compact: boolean): void {
+    const selected = family === this.selectedTreeFamily;
+    const accent = FAMILY_COLORS[family];
+    const container = this.add.container(x, y);
+    const shadow = this.add.graphics().fillStyle(0x000000, .3)
+      .fillRoundedRect(-width / 2 + 2, -height / 2 + 3, width, height, 10);
+    const background = this.add.graphics()
+      .fillStyle(selected ? accent : 0x17271f, selected ? .92 : .96)
+      .fillRoundedRect(-width / 2, -height / 2, width, height, 10)
+      .lineStyle(selected ? 2 : 1, accent, selected ? 1 : .55)
+      .strokeRoundedRect(-width / 2, -height / 2, width, height, 10);
+    if (selected) background.fillStyle(0xfff1b2, .9).fillTriangle(width / 2 + 7, 0, width / 2 - 1, -6, width / 2 - 1, 6);
+    const icon = this.add.text(0, compact ? -7 : -10, FAMILY_ICONS[family], {
+      fontFamily: 'Apple Color Emoji, Pretendard, sans-serif', fontSize: compact ? '19px' : '24px',
+      color: selected ? '#101a14' : '#e8dfbd',
+    }).setOrigin(.5);
+    const label = this.add.text(0, height / 2 - (compact ? 10 : 13), FAMILY_LABELS[family], {
+      fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: compact ? '8px' : '10px', fontStyle: 'bold',
+      color: selected ? '#101a14' : '#cbd3c9',
+    }).setOrigin(.5);
+    const hitArea = this.add.zone(0, 0, width, height).setInteractive({ useHandCursor: true });
+    container.add([shadow, background, icon, label, hitArea]);
+    hitArea.on('pointerover', () => {
+      if (!selected) container.setScale(1.04);
+    }).on('pointerout', () => container.setScale(1))
+      .on('pointerdown', () => {
+        if (family === this.selectedTreeFamily) return;
+        this.selectedTreeFamily = family;
+        this.showGallery();
+      });
+    this.pageObjects.push(container);
+  }
+
+  private createTreePanel(tree: CodexTree, x: number, y: number, width: number, height: number, roomy: boolean): void {
+    const accent = FAMILY_COLORS[tree.family];
+    const panel = this.add.graphics()
+      .fillStyle(0x0c1813, .9).fillRoundedRect(x, y, width, height, 12)
+      .lineStyle(1, accent, .58).strokeRoundedRect(x, y, width, height, 12)
+      .fillStyle(accent, .12).fillRoundedRect(x + 5, y + 5, width - 10, 25, 8);
+    const title = this.add.text(x + 13, y + 10, `${FAMILY_LABELS[tree.family]} 계보`, {
+      fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: roomy ? '12px' : '11px', fontStyle: 'bold', color: '#f0e5bd',
+    });
+    this.pageObjects.push(panel, title);
+
+    const cardWidth = Math.min(roomy ? 142 : 124, width * .255);
+    const contentTop = y + (roomy ? 45 : 37);
+    const contentHeight = height - (roomy ? 53 : 44);
+    const cardHeight = Math.min(roomy ? 64 : 52, Math.max(30, (contentHeight - 8) / tree.branches.length));
+    const rootX = x + width * .17;
+    const firstX = x + width * .52;
+    const secondX = x + width * .84;
+    const rootY = contentTop + contentHeight / 2;
+    const branchYs = tree.branches.map((_, index) => contentTop + contentHeight * ((index + 1) / (tree.branches.length + 1)));
+
+    const stageFontSize = roomy ? '9px' : '7px';
+    const stageY = y + 12;
+    const stageLabels = [
+      this.add.text(rootX, stageY, tree.root ? '기본' : '해금', { fontFamily: 'sans-serif', fontSize: stageFontSize, color: '#91a093' }).setOrigin(.5),
+      this.add.text(firstX, stageY, '1차', { fontFamily: 'sans-serif', fontSize: stageFontSize, color: '#91a093' }).setOrigin(.5),
+      this.add.text(secondX, stageY, '2차', { fontFamily: 'sans-serif', fontSize: stageFontSize, color: '#91a093' }).setOrigin(.5),
+    ];
+    this.pageObjects.push(...stageLabels);
+
+    const lines = this.add.graphics().lineStyle(roomy ? 2 : 1, accent, .62);
+    const rootRight = rootX + cardWidth / 2;
+    const firstLeft = firstX - cardWidth / 2;
+    const firstRight = firstX + cardWidth / 2;
+    const secondLeft = secondX - cardWidth / 2;
+    tree.branches.forEach((branch, branchIndex) => {
+      const branchY = branchYs[branchIndex]!;
+      const splitX = (rootRight + firstLeft) / 2;
+      lines.beginPath().moveTo(rootRight, rootY).lineTo(splitX, rootY).lineTo(splitX, branchY).lineTo(firstLeft, branchY).strokePath();
+      if (branch.second) {
+        lines.lineBetween(firstRight, branchY, secondLeft, branchY);
+        const arrowSize = roomy ? 5 : 3;
+        lines.fillStyle(accent, .75).fillTriangle(secondLeft, branchY, secondLeft - arrowSize, branchY - arrowSize, secondLeft - arrowSize, branchY + arrowSize);
+      }
+    });
+    this.pageObjects.push(lines);
+
+    if (tree.root) this.createTreeUnitCard(tree.root, rootX, rootY, cardWidth, cardHeight, accent, roomy);
+    else this.createSpecialRootCard(rootX, rootY, cardWidth, cardHeight, accent, roomy);
+    tree.branches.forEach((branch, branchIndex) => {
+      const branchY = branchYs[branchIndex]!;
+      this.createTreeUnitCard(branch.first, firstX, branchY, cardWidth, cardHeight, accent, roomy);
+      if (branch.second) this.createTreeUnitCard(branch.second, secondX, branchY, cardWidth, cardHeight, accent, roomy);
+    });
+  }
+
+  private createTreeUnitCard(kind: UnitKind, x: number, y: number, width: number, height: number, accent: number, roomy: boolean): void {
+    const definition = UNIT_LIST.find((unitDefinition) => unitDefinition.kind === kind);
+    if (!definition) return;
+    const container = this.add.container(x, y);
+    const shadow = this.add.graphics().fillStyle(0x000000, .3).fillRoundedRect(-width / 2 + 2, -height / 2 + 3, width, height, 7);
+    const background = this.add.graphics()
+      .fillGradientStyle(0x1c3126, 0x17291f, 0x0e1b15, 0x0b1712, .98)
+      .fillRoundedRect(-width / 2, -height / 2, width, height, 7)
+      .lineStyle(1, accent, .78).strokeRoundedRect(-width / 2, -height / 2, width, height, 7);
+    const layout = UNIT_SHEET_BY_KEY.get(definition.texture);
+    const showSprite = height >= 40 && layout;
+    const spriteScale = showSprite ? Math.min(.24, width / layout.frameWidth * .58, (height - 9) / layout.frameHeight) : 0;
+    const sprite = showSprite
+      ? this.add.sprite(-width * .27 + layout.frameOffsetX * spriteScale, height / 2 - 4, definition.texture, 0)
+        .setOrigin(.5, 1).setScale(spriteScale).play(`${definition.texture}-idle`)
+      : null;
+    const nameX = showSprite ? width * .12 : 0;
+    const name = this.add.text(nameX, roomy ? -5 : -2, definition.name, {
+      fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: `${Math.max(7, Math.min(roomy ? 11 : 9, width / 10))}px`,
+      fontStyle: 'bold', color: '#f4edcf', align: 'center', wordWrap: { width: showSprite ? width * .62 : width - 8 },
+    }).setOrigin(.5);
+    const cost = this.add.text(nameX, height / 2 - (roomy ? 11 : 8), `${definition.cost}G`, {
+      fontFamily: 'monospace', fontSize: roomy ? '8px' : '7px', color: '#cdbf7d',
+    }).setOrigin(.5);
+    const hitArea = this.add.zone(0, 0, width, height).setInteractive({ useHandCursor: true });
+    container.add([shadow, background]);
+    if (sprite) container.add(sprite);
+    container.add([name, cost, hitArea]);
+    hitArea.on('pointerover', () => {
+      this.tweens.killTweensOf(container);
+      this.tweens.add({ targets: container, scaleX: 1.055, scaleY: 1.055, duration: 90, ease: 'Sine.Out' });
+    }).on('pointerout', () => {
+      this.tweens.killTweensOf(container);
+      this.tweens.add({ targets: container, scaleX: 1, scaleY: 1, duration: 90, ease: 'Sine.Out' });
+    }).on('pointerdown', () => {
+      this.index = UNIT_LIST.findIndex((unitDefinition) => unitDefinition.kind === kind);
+      this.showPage();
+    });
+    this.pageObjects.push(container);
+  }
+
+  private createSpecialRootCard(x: number, y: number, width: number, height: number, accent: number, roomy: boolean): void {
+    const container = this.add.container(x, y);
+    const background = this.add.graphics()
+      .fillStyle(0x201a25, .96).fillRoundedRect(-width / 2, -height / 2, width, height, 7)
+      .lineStyle(1, accent, .76).strokeRoundedRect(-width / 2, -height / 2, width, height, 7);
+    const icon = this.add.text(0, roomy ? -8 : -5, '◆  특수 해금', {
+      fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: roomy ? '10px' : '8px', fontStyle: 'bold', color: '#ead7ee',
+    }).setOrigin(.5);
+    const condition = this.add.text(0, height / 2 - (roomy ? 13 : 9), '모든 1차 전직 완료', {
+      fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: roomy ? '7px' : '6px', color: '#bdaec2',
+    }).setOrigin(.5);
+    container.add([background, icon, condition]);
+    this.pageObjects.push(container);
   }
 
   private showPage(): void {
-    this.pageObjects.forEach((object) => object.destroy());
-    this.pageObjects = [];
+    this.clearPage();
+    this.view = 'detail';
 
     const { width, height } = this.scale;
     const mobileLandscape = height < 450;
     const definition = UNIT_LIST[this.index];
     if (!definition) return;
+
+    this.pageObjects.push(
+      ...this.createNavigationButton(48, height / 2, '‹', () => this.changePage(-1)),
+      ...this.createNavigationButton(width - 48, height / 2, '›', () => this.changePage(1)),
+    );
+    const galleryButton = this.add.text(48, 43, '⌘  전직 계보', {
+      fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#e8dfb5',
+      backgroundColor: '#25372ddd', padding: { x: 10, y: 7 },
+    }).setOrigin(0, .5).setInteractive({ useHandCursor: true });
+    galleryButton.on('pointerover', () => galleryButton.setColor('#ffffff'))
+      .on('pointerout', () => galleryButton.setColor('#e8dfb5'))
+      .on('pointerdown', () => this.showGallery());
+    this.pageObjects.push(galleryButton);
 
     const descriptionData = codexDescriptions as Record<UnitKind, { description: string }>;
     const description = descriptionData[definition.kind]?.description.trim() || DESCRIPTION_PLACEHOLDER;
@@ -153,9 +399,9 @@ export class CodexScene extends Phaser.Scene {
     const meta = this.add.text(width / 2, headerY + 29, `${FAMILY_LABELS[definition.family]} · ${TIER_LABELS[definition.tier]} · ${definition.cost}G`, {
       fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: '13px', color: '#b9c9b5',
     }).setOrigin(.5);
-    const counter = this.add.text(62, 43, `${this.index + 1} / ${UNIT_LIST.length}`, {
+    const counter = this.add.text(width / 2, headerY + 48, `${this.index + 1} / ${UNIT_LIST.length}`, {
       fontFamily: 'monospace', fontSize: '14px', fontStyle: 'bold', color: '#d8ca86',
-    }).setOrigin(0, .5);
+    }).setOrigin(.5);
     this.pageObjects.push(title, meta, counter);
 
     const previews: Array<{ label: string; animation: 'idle' | 'move' | 'attack'; texture: string }> = [
@@ -263,12 +509,13 @@ export class CodexScene extends Phaser.Scene {
     this.showPage();
   }
 
-  private createNavigationButton(x: number, y: number, label: string, action: () => void): void {
+  private createNavigationButton(x: number, y: number, label: string, action: () => void): Phaser.GameObjects.GameObject[] {
     const background = this.add.circle(x, y, 25, 0x263b2f, .96).setStrokeStyle(2, 0xcabd72).setInteractive({ useHandCursor: true });
     const text = this.add.text(x, y - 3, label, { fontFamily: 'Georgia, serif', fontSize: '45px', color: '#fff1b2' }).setOrigin(.5);
     background.on('pointerover', () => { background.setScale(1.1); text.setScale(1.1); })
       .on('pointerout', () => { background.setScale(1); text.setScale(1); })
       .on('pointerdown', action);
+    return [background, text];
   }
 
   private createBackButton(x: number, y: number): void {
