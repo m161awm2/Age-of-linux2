@@ -26,6 +26,10 @@ export class BootScene extends Phaser.Scene {
       frameWidth: asset.frameWidth,
       frameHeight: asset.frameHeight,
     }));
+    this.load.spritesheet('siphonarioiFlame', 'assets/effects/siphonarioi-flame.png', {
+      frameWidth: 352,
+      frameHeight: 176,
+    });
   }
 
   create(): void {
@@ -35,6 +39,12 @@ export class BootScene extends Phaser.Scene {
         this.anims.create({ key: `${key}-move`, frames: this.anims.generateFrameNumbers(key, { start: 4, end: 7 }), frameRate: 8, repeat: -1 });
         this.anims.create({ key: `${key}-attack`, frames: this.anims.generateFrameNumbers(key, { start: 8, end: 11 }), frameRate: 8, repeat: 0 });
       }
+    });
+    this.anims.create({
+      key: 'siphonarioi-flame',
+      frames: this.anims.generateFrameNumbers('siphonarioiFlame', { start: 0, end: 1 }),
+      frameRate: 10,
+      repeat: -1,
     });
     const loadingScreen = document.getElementById('loading-screen');
     loadingScreen?.classList.add('loading-complete');

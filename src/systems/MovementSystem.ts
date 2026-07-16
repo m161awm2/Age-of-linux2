@@ -19,7 +19,9 @@ export class MovementSystem {
         unit.playState('idle');
         return;
       }
-      if (unit.attackLocked) return;
+      // 일반 공격 모션 중에도 전진한다. 공격 애니메이션과 적중 프레임은
+      // CombatUnit의 attack lock이 유지하며, 채널링 공격은 이동 속도가
+      // 30% 감소한 채 계속 전진한다.
       const allyAhead = index > 0 ? alive[index - 1] : undefined;
       const enemyAhead = liveEnemies[0];
       const direction = unit.team === 'player' ? 1 : -1;
@@ -42,7 +44,8 @@ export class MovementSystem {
         return;
       }
 
-      const distance = BASE_MOVE_SPEED * unit.speedMultiplier(now) * deltaSeconds;
+      const attackMoveMultiplier = unit.isChanneling ? .7 : 1;
+      const distance = BASE_MOVE_SPEED * unit.speedMultiplier(now) * attackMoveMultiplier * deltaSeconds;
       unit.x += direction * distance;
       unit.addCharge(distance);
       unit.playState('move');

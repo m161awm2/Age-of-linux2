@@ -50,7 +50,7 @@ export class CombatUnit extends Phaser.GameObjects.Container {
   private unitState: UnitState = 'idle';
   private readonly chargeFx: Phaser.GameObjects.Graphics;
   private readonly sprite: Phaser.GameObjects.Sprite;
-  private readonly flameFx: Phaser.GameObjects.Graphics | null;
+  private readonly flameFx: Phaser.GameObjects.Sprite | null;
   private readonly hpBar: Phaser.GameObjects.Graphics;
   private readonly statusText: Phaser.GameObjects.Text;
 
@@ -68,7 +68,7 @@ export class CombatUnit extends Phaser.GameObjects.Container {
     this.lockSpriteGeometry();
     this.sprite.setFlipX(team === 'enemy');
     this.flameFx = definition.kind === 'siphonarioi'
-      ? scene.add.graphics().setVisible(false)
+      ? scene.add.sprite(0, -69, 'siphonarioiFlame', 0).setVisible(false)
       : null;
     this.hpBar = scene.add.graphics();
     this.statusText = scene.add.text(0, -130, '', {
@@ -171,7 +171,7 @@ export class CombatUnit extends Phaser.GameObjects.Container {
     this.attackLocked = false;
     this.pendingTarget = null;
     this.hitApplied = false;
-    this.flameFx?.clear().setVisible(false);
+    this.flameFx?.stop().setVisible(false);
     if (this.alive) this.playState('idle');
   }
 
@@ -357,53 +357,24 @@ export class CombatUnit extends Phaser.GameObjects.Container {
 
   private drawFlameFx(now: number): void {
     if (!this.flameFx) return;
-    this.flameFx.clear();
     if (this.channelKind !== 'flame') {
-      this.flameFx.setVisible(false);
+      this.flameFx.stop().setVisible(false);
       return;
     }
-    this.flameFx.setVisible(true);
     const direction = this.team === 'player' ? 1 : -1;
     const warmedUp = now >= this.channelReadyAt;
-    const pulse = Math.sin(now * .025);
-    const nozzleX = direction * 42;
-    const centerY = -69;
-    const length = warmedUp ? 178 + pulse * 12 : 34 + pulse * 5;
-    const tipX = nozzleX + direction * length;
-    const outerWidth = warmedUp ? 48 + Math.sin(now * .019) * 7 : 15;
-
-    this.flameFx.fillStyle(0xe74313, .72);
-    this.flameFx.beginPath();
-    this.flameFx.moveTo(nozzleX, centerY - 8);
-    this.flameFx.lineTo(tipX, centerY + Math.sin(now * .031) * 10);
-    this.flameFx.lineTo(nozzleX, centerY + 8);
-    this.flameFx.closePath().fillPath();
-
-    this.flameFx.fillStyle(0xff861c, .9);
-    this.flameFx.beginPath();
-    this.flameFx.moveTo(nozzleX, centerY - outerWidth * .45);
-    this.flameFx.lineTo(nozzleX + direction * length * .76, centerY - outerWidth * .32 + pulse * 5);
-    this.flameFx.lineTo(tipX, centerY + Math.sin(now * .027) * 8);
-    this.flameFx.lineTo(nozzleX + direction * length * .7, centerY + outerWidth * .4 - pulse * 4);
-    this.flameFx.lineTo(nozzleX, centerY + outerWidth * .45);
-    this.flameFx.closePath().fillPath();
-
-    this.flameFx.fillStyle(0xffd94a, .96);
-    this.flameFx.beginPath();
-    this.flameFx.moveTo(nozzleX, centerY - 7);
-    this.flameFx.lineTo(nozzleX + direction * length * .62, centerY - 12 + pulse * 3);
-    this.flameFx.lineTo(nozzleX + direction * length * .82, centerY + Math.sin(now * .037) * 5);
-    this.flameFx.lineTo(nozzleX + direction * length * .58, centerY + 12 - pulse * 3);
-    this.flameFx.lineTo(nozzleX, centerY + 7);
-    this.flameFx.closePath().fillPath();
-
-    if (!warmedUp) return;
-    for (let ember = 0; ember < 4; ember += 1) {
-      const phase = now * .006 + ember * 1.7;
-      const distance = 95 + ((now * .11 + ember * 43) % 115);
-      this.flameFx.fillStyle(ember % 2 === 0 ? 0xffb52e : 0xff6120, .75);
-      this.flameFx.fillCircle(nozzleX + direction * distance, centerY + Math.sin(phase) * 25, 3 + ember % 2);
+    if (!warmedUp) {
+      this.flameFx.stop().setVisible(false);
+      return;
     }
+    if (!this.flameFx.anims.isPlaying) this.flameFx.play('siphonarioi-flame');
+    this.flameFx
+      .setVisible(true)
+      .setPosition(direction * 42, -69)
+      .setOrigin(direction > 0 ? 0 : 1, .5)
+      .setFlipX(direction < 0)
+      .setDisplaySize(211, 96)
+      .setAlpha(1);
   }
 
   private setVisualTexture(textureKey: string): void {
