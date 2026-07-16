@@ -37,10 +37,10 @@ export class CombatUnit extends Phaser.GameObjects.Container {
   isDragoonMelee = false;
   isRetiariusMelee = false;
   retiariusThrown = false;
+  retiariusReloadAt = 0;
   hasStartedCombat = false;
   private channelKind: ChannelKind | null = null;
   private channelReadyAt = 0;
-  private readonly comboHitFrames = new Set<number>();
   private activeBurnStacks = 0;
   private networkTargetX: number | null = null;
 
@@ -67,28 +67,25 @@ export class CombatUnit extends Phaser.GameObjects.Container {
     this.sprite = scene.add.sprite(0, 0, this.textureKey, 0);
     this.lockSpriteGeometry();
     this.sprite.setFlipX(team === 'enemy');
+    const unitDepth = 20 + Math.round(y);
     this.flameFx = definition.kind === 'siphonarioi'
-      ? scene.add.sprite(0, -69, 'siphonarioiFlame', 0).setVisible(false)
+      ? scene.add.sprite(x, y - 69, 'siphonarioiFlame', 0).setDepth(unitDepth - 1).setVisible(false)
       : null;
     this.hpBar = scene.add.graphics();
     this.statusText = scene.add.text(0, -130, '', {
       fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif',
       fontSize: '13px', color: '#fff9dd', stroke: '#16120d', strokeThickness: 4,
     }).setOrigin(.5);
-    this.add([this.chargeFx, this.sprite, ...(this.flameFx ? [this.flameFx] : []), this.hpBar, this.statusText]);
+    this.add([this.chargeFx, this.sprite, this.hpBar, this.statusText]);
     this.setSize(72, 116);
-    this.setDepth(20 + Math.round(y));
+    this.setDepth(unitDepth);
     scene.add.existing(this);
 
     this.sprite.on(Phaser.Animations.Events.ANIMATION_UPDATE, (_animation: Phaser.Animations.Animation, frame: Phaser.Animations.AnimationFrame) => {
       this.lockSpriteGeometry();
       const frameNumber = Number(frame.textureFrame);
       if (this.channelKind) return;
-      if (this.definition.kind === 'retiarius' && this.isRetiariusMelee && this.attackLocked && [9, 10, 11].includes(frameNumber)) {
-        if (this.comboHitFrames.has(frameNumber)) return;
-        this.comboHitFrames.add(frameNumber);
-        this.scene.events.emit('unit-hit-frame', this, this.pendingTarget);
-      } else if (this.attackLocked && !this.hitApplied && frameNumber === 10) {
+      if (this.attackLocked && !this.hitApplied && frameNumber === 10) {
         this.hitApplied = true;
         this.scene.events.emit('unit-hit-frame', this, this.pendingTarget);
       }
@@ -114,7 +111,13 @@ export class CombatUnit extends Phaser.GameObjects.Container {
   get isStunned(): boolean { return this.alive && this.stunnedUntil > this.scene.time.now; }
   get isChanneling(): boolean { return this.channelKind !== null; }
   get attackDamage(): number {
+    if (this.definition.kind === 'retiarius' && this.isRetiariusMelee) return 16;
     return this.definition.damage + (this.definition.kind === 'shieldGuard' && this.shieldHp === 0 ? 2 : 0);
+  }
+
+  destroy(fromScene?: boolean): void {
+    if (this.flameFx?.active) this.flameFx.destroy(fromScene);
+    super.destroy(fromScene);
   }
 
   playState(state: UnitState): void {
@@ -133,7 +136,6 @@ export class CombatUnit extends Phaser.GameObjects.Container {
     this.attackLocked = true;
     this.pendingTarget = target;
     this.hitApplied = false;
-    this.comboHitFrames.clear();
     this.playState('attack');
     // 낭인의 첫 발도술은 공격 모션은 재생하되 피해 선딜 없이 즉시 적중한다.
     if (instantIaiStrike) {
@@ -151,10 +153,14 @@ export class CombatUnit extends Phaser.GameObjects.Container {
       this.attackLocked = true;
       this.pendingTarget = null;
       this.hitApplied = false;
-      this.playState('attack');
       if (kind === 'flame') {
-        this.flameFx?.setVisible(true);
-      }
+        // 점화 준비 중에는 불꽃이 포함된 공격 시트를 재생하지 않는다.
+        // 실제 발사가 시작될 때 drawFlameFx에서 공격 모션으로 전환한다.
+        this.unitState = 'move';
+        this.sprite.play(`${this.textureKey}-move`, true);
+        this.lockSpriteGeometry();
+        this.flameFx?.stop().setVisible(false);
+      } else this.playState('attack');
     }
   }
 
@@ -307,7 +313,6 @@ export class CombatUnit extends Phaser.GameObjects.Container {
       this.isBerserking ? '광폭' : '',
       this.channelKind === 'gatling' ? (now < this.channelReadyAt ? '예열' : '연사') : '',
       this.channelKind === 'flame' ? '화염 분사' : '',
-      this.definition.kind === 'retiarius' && this.retiariusThrown && !this.isRetiariusMelee ? '고속 접근' : '',
       this.canParry(now) ? '패링' : '',
       this.definition.kind === 'shieldGuard' && this.shieldHp === 0 ? '롱소드 +2' : '',
       chargeBonus > 0 ? `돌진 +${chargeBonus}%` : '',
@@ -367,10 +372,11 @@ export class CombatUnit extends Phaser.GameObjects.Container {
       this.flameFx.stop().setVisible(false);
       return;
     }
+    this.playState('attack');
     if (!this.flameFx.anims.isPlaying) this.flameFx.play('siphonarioi-flame');
     this.flameFx
       .setVisible(true)
-      .setPosition(direction * 42, -69)
+      .setPosition(this.x + direction * 42, this.y - 69)
       .setOrigin(direction > 0 ? 0 : 1, .5)
       .setFlipX(direction < 0)
       .setDisplaySize(211, 96)

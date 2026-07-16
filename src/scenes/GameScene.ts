@@ -132,8 +132,6 @@ export class GameScene extends Phaser.Scene {
     const dt = Math.min(delta / 1000, .05);
     const now = this.time.now;
     const elapsed = (now - this.startedAt) / 1000;
-    this.playerUnits.forEach((unit) => unit.updateStatus(now));
-    this.enemyUnits.forEach((unit) => unit.updateStatus(now));
     if (this.pvp && !this.pvp.isHost) {
       this.playerUnits.forEach((unit) => unit.updateNetworkPosition(dt));
       this.enemyUnits.forEach((unit) => unit.updateNetworkPosition(dt));
@@ -149,6 +147,10 @@ export class GameScene extends Phaser.Scene {
       this.combat.update(this.enemyUnits, this.playerUnits, this.playerBase, now);
       this.payBountiesAndRemoveDead();
     }
+    // 이동과 전투 계산 뒤에 시각 효과를 갱신해 별도 레이어의 화염이
+    // 화염방사병의 현재 위치를 정확히 따라가게 한다.
+    this.playerUnits.forEach((unit) => unit.updateStatus(now));
+    this.enemyUnits.forEach((unit) => unit.updateStatus(now));
     if (!this.pvp) this.applyEnemyBaseSupply();
     else this.applyPvpEmergencySupply();
     this.updateHud(elapsed);

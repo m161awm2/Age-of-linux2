@@ -76,10 +76,14 @@ export class CombatSystem {
       return;
     }
     unit.setRetiariusMode(false);
-    if (unit.retiariusThrown) return;
+    if (unit.retiariusThrown && now < unit.retiariusReloadAt) return;
+    unit.retiariusThrown = false;
     this.prepareOpeningAttack(unit, now, unit.definition.attackInterval);
     unit.startAttack(target, now);
-    if (unit.attackLocked) unit.retiariusThrown = true;
+    if (unit.attackLocked) {
+      unit.retiariusThrown = true;
+      unit.retiariusReloadAt = now + 2000;
+    }
   }
 
   private updateSiphonarioi(unit: CombatUnit, enemies: CombatUnit[], enemyBase: BaseEntity, now: number): void {
@@ -162,7 +166,9 @@ export class CombatSystem {
       if (isIaiStrike) target.flashIaiHit();
       const dealt = target.takeDamage(damage, now);
       target.showDamage(damage, chargeBonus > 0 ? '#ffd45c' : '#fff1b4');
-      if (attacker.definition.kind === 'fireArcher' && dealt > 0 && target.alive) target.applyBurnStack();
+      const appliesBurn = attacker.definition.kind === 'fireArcher'
+        || (attacker.definition.kind === 'siphonarioi' && Math.random() < .25);
+      if (appliesBurn && dealt > 0 && target.alive) target.applyBurnStack();
       if (isIaiStrike && target.alive) target.applyStun(now, 400);
       if (attacker.definition.kind === 'viking' && dealt > 0) attacker.heal(1);
       if (attacker.definition.kind === 'crusader' && dealt > 0) {

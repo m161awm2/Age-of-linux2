@@ -58,13 +58,13 @@ const CONDITIONAL_STATS: Partial<Record<UnitKind, ConditionalStats>> = {
     effects: ['이동속도 30% 감소', '0.9초 예열 후 0.28초마다 이동 연사'],
   },
   retiarius: {
-    condition: '첫 원거리 공격 / 근거리 전환',
-    effects: ['삼지창 1회 투척', '이동속도 1.5배', '근거리 공격 1회당 3연타'],
-    overrides: { damage: '8×3', dps: '26.67', range: '5→1.5칸', speed: '1.5배' },
+    condition: '원거리 투창 / 근거리 전환',
+    effects: ['투창 피해 9', '투창 2초마다 재충전', '근거리 단타 피해 16'],
+    overrides: { damage: '9→16', dps: '10.00→17.78', range: '5→1.5칸' },
   },
   siphonarioi: {
     condition: '전방 3칸',
-    effects: ['이동속도 30% 감소', '1초 점화 준비', '전진하며 0.5초마다 범위 화염 피해'],
+    effects: ['이동속도 30% 감소', '1초 점화 준비', '0.5초마다 범위 피해', '적중 시 25% 확률로 중첩 화상'],
   },
   wingedHussar: {
     condition: '8칸 돌진 시',
