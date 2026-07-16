@@ -3,7 +3,7 @@ import { DIFFICULTIES } from '../data/constants';
 import type { Difficulty } from '../data/types';
 import { AudioService } from '../services/AudioService';
 import { SettingsPanel } from '../ui/SettingsPanel';
-import { TutorialProgressService } from '../services/TutorialProgressService';
+import { TutorialProgressService, type MenuTutorialStep } from '../services/TutorialProgressService';
 import { AuthService } from '../services/AuthService';
 import { HomeChatPanel } from '../ui/HomeChatPanel';
 
@@ -16,6 +16,9 @@ const DIFFICULTY_STYLES: Record<Difficulty, { top: number; bottom: number; borde
 };
 
 export class StartScene extends Phaser.Scene {
+  private tutorialOverlay: Phaser.GameObjects.GameObject[] = [];
+  private tutorialTargets: Partial<Record<MenuTutorialStep, Phaser.GameObjects.Container>> = {};
+
   constructor() { super('StartScene'); }
 
   create(): void {
@@ -24,7 +27,7 @@ export class StartScene extends Phaser.Scene {
     const settingsPanel = new SettingsPanel();
     AudioService.prepare(this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => settingsPanel.destroy());
-    if (!TutorialProgressService.isComplete()) {
+    if (!TutorialProgressService.isComplete() && !TutorialProgressService.getMenuStep()) {
       this.scene.start('TutorialScene', { forced: true });
       return;
     }
@@ -55,11 +58,17 @@ export class StartScene extends Phaser.Scene {
       fontStyle: 'bold', color: '#f4e5a6', stroke: '#1d2116', strokeThickness: 5,
     }).setOrigin(.5);
 
-    const difficultyModal = this.createDifficultyModal(width, height);
-    const modeModal = this.createModeModal(width, height, () => {
+    const difficultyModalData = this.createDifficultyModal(width, height);
+    const difficultyModal = difficultyModalData.modal;
+    const modeModalData = this.createModeModal(width, height, () => {
       modeModal.setVisible(false);
       difficultyModal.setVisible(true);
+      if (TutorialProgressService.getMenuStep() === 'campaign') {
+        TutorialProgressService.setMenuStep('easy');
+        this.showTutorialSpotlight(difficultyModalData.easyButton, 'easy');
+      }
     });
+    const modeModal = modeModalData.modal;
     const compact = height < 700;
     const menuWidth = mobileLandscape ? Math.min(160, (width * .58 - 42) / 2) : Math.min(250, width * .3);
     const menuHeight = mobileLandscape ? 38 : compact ? 42 : 54;
@@ -67,7 +76,13 @@ export class StartScene extends Phaser.Scene {
     const menuX = 20 + menuWidth / 2;
     const firstMenuY = mobileLandscape ? 142 : compact ? Math.max(225, height * .41) : Math.max(350, height * .5);
     const menuItems: Array<[string, string, number, () => void]> = [
-      ['▶', '게임 시작', 0xb8d56f, () => modeModal.setVisible(true)],
+      ['▶', '게임 시작', 0xb8d56f, () => {
+        modeModal.setVisible(true);
+        if (TutorialProgressService.getMenuStep() === 'gameStart') {
+          TutorialProgressService.setMenuStep('campaign');
+          this.showTutorialSpotlight(modeModalData.campaignButton, 'campaign');
+        }
+      }],
       ['⚙', '설정', 0xe0c36b, () => settingsPanel.open()],
       ['▤', '도감', 0x87c9b0, () => this.scene.start('CodexScene')],
       ['?', '튜토리얼', 0x9db7e0, () => this.scene.start('TutorialScene', { forced: false })],
@@ -76,12 +91,21 @@ export class StartScene extends Phaser.Scene {
     menuItems.forEach(([icon, label, accent, action], index) => {
       const column = mobileLandscape ? index % 2 : 0;
       const row = mobileLandscape ? Math.floor(index / 2) : index;
-      this.createMenuButton(
+      const button = this.createMenuButton(
         menuX + column * (menuWidth + menuGap),
         firstMenuY + row * (menuHeight + menuGap),
         menuWidth, menuHeight, icon, label, accent, action,
       );
+      const tutorialSteps: MenuTutorialStep[] = ['gameStart', 'settings', 'codex', 'rank'];
+      const tutorialStep = tutorialSteps[index];
+      if (tutorialStep) this.tutorialTargets[tutorialStep] = button;
     });
+
+    const tutorialStep = TutorialProgressService.getMenuStep();
+    const tutorialTarget = tutorialStep ? this.tutorialTargets[tutorialStep] : undefined;
+    if (tutorialStep && tutorialTarget) {
+      this.showTutorialSpotlight(tutorialTarget, tutorialStep);
+    }
 
     if (!compact) {
       this.add.text(width / 2, height - 24, '유닛 생산 1·2·3·4  ·  전직 5·6  ·  카메라 A/D 또는 ←/→  ·  확대 Q/E 또는 휠', {
@@ -91,12 +115,16 @@ export class StartScene extends Phaser.Scene {
     }
 
     this.input.keyboard?.on('keydown-ESC', () => {
+      if (TutorialProgressService.getMenuStep()) return;
       if (difficultyModal.visible) difficultyModal.setVisible(false);
       else if (modeModal.visible) modeModal.setVisible(false);
     });
   }
 
-  private createModeModal(width: number, height: number, openCampaign: () => void): Phaser.GameObjects.Container {
+  private createModeModal(width: number, height: number, openCampaign: () => void): {
+    modal: Phaser.GameObjects.Container;
+    campaignButton: Phaser.GameObjects.Container;
+  } {
     const backdrop = this.add.rectangle(width / 2, height / 2, width, height, 0x020806, .78)
       .setInteractive({ useHandCursor: true });
     const cardWidth = Math.min(720, width - 56);
@@ -132,7 +160,7 @@ export class StartScene extends Phaser.Scene {
     backdrop.on('pointerdown', () => modal.setVisible(false));
     close.on('pointerover', () => close.setColor('#ffffff')).on('pointerout', () => close.setColor('#d8d1b4'))
       .on('pointerdown', () => modal.setVisible(false));
-    return modal;
+    return { modal, campaignButton: campaign };
   }
 
   private createModeButton(
@@ -191,7 +219,7 @@ export class StartScene extends Phaser.Scene {
     label: string,
     accent: number,
     action: () => void,
-  ): void {
+  ): Phaser.GameObjects.Container {
     const shadow = this.add.graphics().fillStyle(0x020604, .58).fillRoundedRect(-width / 2 + 5, -height / 2 + 6, width, height, 11);
     const panel = this.add.graphics()
       .fillGradientStyle(0x2b4335, 0x263d30, 0x14241c, 0x101d17, .98)
@@ -214,9 +242,13 @@ export class StartScene extends Phaser.Scene {
       this.tweens.killTweensOf(button);
       this.tweens.add({ targets: button, x, scaleX: 1, scaleY: 1, duration: 110, ease: 'Sine.Out' });
     }).on('pointerdown', action);
+    return button;
   }
 
-  private createDifficultyModal(width: number, height: number): Phaser.GameObjects.Container {
+  private createDifficultyModal(width: number, height: number): {
+    modal: Phaser.GameObjects.Container;
+    easyButton: Phaser.GameObjects.Container;
+  } {
     const backdrop = this.add.rectangle(width / 2, height / 2, width, height, 0x020806, .76)
       .setInteractive({ useHandCursor: true });
     const cardWidth = Math.min(700, width - 56);
@@ -244,9 +276,12 @@ export class StartScene extends Phaser.Scene {
     const difficulties: Difficulty[] = ['Easy', 'Normal', 'Medium', 'Hard', 'Impossible'];
     const buttonWidth = Math.min(145, (cardWidth - 90) / difficulties.length);
     const gap = Math.min(14, (cardWidth - buttonWidth * difficulties.length) / (difficulties.length + 1));
+    let easyButton: Phaser.GameObjects.Container | null = null;
     difficulties.forEach((difficulty, index) => {
       const x = (index - (difficulties.length - 1) / 2) * (buttonWidth + gap);
-      card.add(this.createDifficultyButton(x, 25, buttonWidth, difficulty));
+      const button = this.createDifficultyButton(x, 25, buttonWidth, difficulty);
+      card.add(button);
+      if (difficulty === 'Easy') easyButton = button;
     });
     const help = this.add.text(0, 102, '난이도는 적 기지 체력과 AI 생산 속도에 영향을 줍니다.', {
       fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif', fontSize: '11px', color: '#7f9084',
@@ -257,7 +292,7 @@ export class StartScene extends Phaser.Scene {
     backdrop.on('pointerdown', () => modal.setVisible(false));
     close.on('pointerover', () => close.setColor('#ffffff')).on('pointerout', () => close.setColor('#d8d1b4'))
       .on('pointerdown', () => modal.setVisible(false));
-    return modal;
+    return { modal, easyButton: easyButton! };
   }
 
   private createDifficultyButton(x: number, y: number, width: number, difficulty: Difficulty): Phaser.GameObjects.Container {
@@ -297,6 +332,10 @@ export class StartScene extends Phaser.Scene {
       .on('pointerup', () => {
         if (!pressedHere) return;
         pressedHere = false;
+        if (difficulty === 'Easy' && TutorialProgressService.getMenuStep() === 'easy') {
+          TutorialProgressService.complete();
+          this.clearTutorialOverlay();
+        }
         this.scene.start('GameScene', { difficulty });
       })
       .on('pointerupoutside', () => {
@@ -304,5 +343,98 @@ export class StartScene extends Phaser.Scene {
         button.setScale(1);
       });
     return button;
+  }
+
+  private showTutorialSpotlight(target: Phaser.GameObjects.Container, step: MenuTutorialStep): void {
+    this.clearTutorialOverlay();
+    const { width, height } = this.scale;
+    const bounds = target.getBounds();
+    const padding = 9;
+    const left = Math.max(0, bounds.left - padding);
+    const right = Math.min(width, bounds.right + padding);
+    const top = Math.max(0, bounds.top - padding);
+    const bottom = Math.min(height, bounds.bottom + padding);
+    const blocker = (x: number, y: number, w: number, h: number): Phaser.GameObjects.Rectangle | null => {
+      if (w <= 0 || h <= 0) return null;
+      return this.add.rectangle(x, y, w, h, 0x020806, .82)
+        .setDepth(500).setInteractive();
+    };
+    const pieces = [
+      blocker(width / 2, top / 2, width, top),
+      blocker(width / 2, bottom + (height - bottom) / 2, width, height - bottom),
+      blocker(left / 2, top + (bottom - top) / 2, left, bottom - top),
+      blocker(right + (width - right) / 2, top + (bottom - top) / 2, width - right, bottom - top),
+    ].filter((object): object is Phaser.GameObjects.Rectangle => object !== null);
+    const outline = this.add.graphics().setDepth(501)
+      .lineStyle(3, 0xf2d76f, 1).strokeRoundedRect(left, top, right - left, bottom - top, 12);
+    this.tweens.add({ targets: outline, alpha: .35, duration: 650, yoyo: true, repeat: -1 });
+
+    const copy: Record<MenuTutorialStep, { title: string; text: string }> = {
+      settings: { title: '설정', text: '배경음악 음량을 조절하고 저장할 수 있습니다.' },
+      codex: { title: '병종 도감', text: '모든 병종의 능력치, 특징과 전직 계보를 확인합니다.' },
+      rank: { title: '랭크', text: '난이도별 기록과 상위권의 병종 조합을 비교합니다.' },
+      gameStart: { title: '1. 게임 시작', text: '강조된 게임 시작 버튼을 눌러 주세요.' },
+      campaign: { title: '2. 캠페인 모드', text: 'AI와 싸우는 캠페인 모드를 선택해 주세요.' },
+      easy: { title: '3. 쉬움 선택', text: '쉬움을 눌러 첫 캠페인을 시작해 주세요.' },
+    };
+    const informational = step === 'settings' || step === 'codex' || step === 'rank';
+    const promptWidth = Math.min(390, width - 36);
+    const promptHeight = informational ? 108 : 76;
+    const preferredY = bottom + 58;
+    const promptY = preferredY + promptHeight / 2 < height - 20 ? preferredY : Math.max(66, top - 58);
+    const promptX = Phaser.Math.Clamp((left + right) / 2, promptWidth / 2 + 18, width - promptWidth / 2 - 18);
+    const prompt = this.add.container(promptX, promptY).setDepth(510);
+    const promptBg = this.add.rectangle(0, 0, promptWidth, promptHeight, 0x14271e, .98)
+      .setStrokeStyle(2, 0xe2c55e);
+    const promptTitle = this.add.text(0, informational ? -29 : -16, copy[step].title, {
+      fontFamily: 'Pretendard, sans-serif', fontSize: '17px', fontStyle: 'bold', color: '#fff0a8',
+    }).setOrigin(.5);
+    const promptText = this.add.text(0, informational ? 0 : 15, copy[step].text, {
+      fontFamily: 'Pretendard, sans-serif', fontSize: '13px', color: '#f0eee1',
+    }).setOrigin(.5);
+    prompt.add([promptBg, promptTitle, promptText]);
+
+    if (informational) {
+      const targetBlocker = this.add.rectangle((left + right) / 2, (top + bottom) / 2, right - left, bottom - top, 0x000000, .001)
+        .setDepth(505).setInteractive();
+      const nextBg = this.add.rectangle(0, 32, 92, 30, 0x607b31, 1)
+        .setStrokeStyle(1, 0xd7e77f).setInteractive({ useHandCursor: true });
+      const nextText = this.add.text(0, 32, '다음 →', {
+        fontFamily: 'Pretendard, sans-serif', fontSize: '13px', fontStyle: 'bold', color: '#fff5d3',
+      }).setOrigin(.5);
+      nextBg.on('pointerdown', () => this.advanceMenuTutorial(step));
+      prompt.add([nextBg, nextText]);
+      this.tutorialOverlay.push(targetBlocker);
+    }
+
+    const skipBg = this.add.rectangle(width - 72, 34, 124, 38, 0x263b30, .98)
+      .setStrokeStyle(1, 0xd7c978).setDepth(520).setInteractive({ useHandCursor: true });
+    const skipText = this.add.text(width - 72, 34, '건너뛰기', {
+      fontFamily: 'Pretendard, sans-serif', fontSize: '14px', fontStyle: 'bold', color: '#fff5d3',
+    }).setOrigin(.5).setDepth(521);
+    skipBg.on('pointerdown', () => {
+      TutorialProgressService.complete();
+      this.clearTutorialOverlay();
+      this.scene.restart();
+    });
+    this.tutorialOverlay.push(...pieces, outline, prompt, skipBg, skipText);
+  }
+
+  private clearTutorialOverlay(): void {
+    this.tutorialOverlay.forEach((object) => object.destroy());
+    this.tutorialOverlay = [];
+  }
+
+  private advanceMenuTutorial(step: 'settings' | 'codex' | 'rank'): void {
+    const next: Record<typeof step, MenuTutorialStep> = {
+      settings: 'codex',
+      codex: 'rank',
+      rank: 'gameStart',
+    };
+    const nextStep = next[step];
+    const nextTarget = this.tutorialTargets[nextStep];
+    if (!nextTarget) return;
+    TutorialProgressService.setMenuStep(nextStep);
+    this.showTutorialSpotlight(nextTarget, nextStep);
   }
 }

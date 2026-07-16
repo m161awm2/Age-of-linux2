@@ -37,9 +37,9 @@ const TUTORIAL_PAGES = [
   },
   {
     icon: '★',
-    title: '전투 준비 완료!',
-    text: '이제 전투를 시작할 준비가 끝났습니다. 쉬움에서 병종 조합과 전직 순서를 익힌 뒤 보통, 어려움, 임파서블, 헬에 도전해 보세요.\n\n설정에서는 배경음악 음량을 조절할 수 있고, 이 튜토리얼은 메인 메뉴에서 언제든 다시 볼 수 있습니다.',
-    tip: '상대 조합을 보고 상성이 좋은 병종으로 전직하는 것이 승리의 핵심입니다.',
+    title: '메인 메뉴로 이동합니다',
+    text: '기본 설명은 모두 끝났습니다. 다음 화면에서는 설정, 도감, 랭크 버튼을 차례로 강조해 각 기능을 안내합니다.\n\n안내가 끝나면 게임 시작, 캠페인 모드, 쉬움을 직접 눌러 첫 전투를 시작합니다.',
+    tip: '안내를 끝내고 싶다면 화면 오른쪽 위의 건너뛰기를 누를 수 있습니다.',
   },
 ] as const;
 
@@ -75,9 +75,8 @@ export class TutorialScene extends Phaser.Scene {
         fontFamily: 'Pretendard, sans-serif', fontSize: '11px', fontStyle: 'bold', color: '#f3dc84',
         backgroundColor: '#4a3818cc', padding: { x: 9, y: 6 },
       }).setOrigin(0, .5);
-    } else {
-      this.createButton(width - 75, 44, 92, 34, '× 닫기', () => this.scene.start('StartScene'), false);
     }
+    this.createButton(width - 82, 44, 112, 34, '건너뛰기', () => this.skip(), false);
 
     this.input.keyboard?.on('keydown-LEFT', () => this.changePage(-1));
     this.input.keyboard?.on('keydown-RIGHT', () => this.changePage(1));
@@ -134,9 +133,14 @@ export class TutorialScene extends Phaser.Scene {
   private next(): void {
     if (this.page < TUTORIAL_PAGES.length - 1) this.changePage(1);
     else {
-      TutorialProgressService.complete();
+      TutorialProgressService.beginMenuWalkthrough();
       this.scene.start('StartScene');
     }
+  }
+
+  private skip(): void {
+    TutorialProgressService.complete();
+    this.scene.start('StartScene');
   }
 
   private changePage(direction: -1 | 1): void {
