@@ -9,6 +9,7 @@ import { UNITS } from '../data/units';
 import type { Difficulty, GameLaunchData, Team, UnitKind } from '../data/types';
 import { BaseEntity } from '../entities/BaseEntity';
 import { CombatUnit } from '../entities/CombatUnit';
+import { AudioService } from '../services/AudioService';
 import { GameProgressService } from '../services/GameProgressService';
 import { RankService } from '../services/RankService';
 import { PvpRoomService, type PvpBattleSnapshot } from '../services/PvpRoomService';
@@ -86,6 +87,8 @@ export class GameScene extends Phaser.Scene {
 
   create(): void {
     const difficultyConfig = DIFFICULTIES[this.difficulty];
+    if (!this.pvp && this.difficulty === 'Impossible') AudioService.playHellTheme(this);
+    else AudioService.prepare(this);
     this.startedAt = this.time.now;
     this.lastEnemySupplyHp = this.pvp ? 100 : difficultyConfig.enemyBaseHp;
     this.ai = new AISystem(this.difficulty);
@@ -587,6 +590,7 @@ export class GameScene extends Phaser.Scene {
   private onBattleMessage(message: string): void { this.hud.message(message); }
 
   private shutdown(): void {
+    if (!this.pvp && this.difficulty === 'Impossible') AudioService.prepare(this);
     if (this.pvpPollTimer !== null) window.clearInterval(this.pvpPollTimer);
     this.pvpPollTimer = null;
     if (this.pvpStateTimer !== null) window.clearInterval(this.pvpStateTimer);

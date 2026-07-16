@@ -25,11 +25,11 @@ export const DIFFICULTIES: Record<Difficulty, DifficultyConfig> = {
 
 export const PROMOTION_COSTS = {
   infantry: 20,
-  archer: 25,
-  cavalry: 30,
+  archer: 20,
+  cavalry: 20,
   secondInfantry: 30,
   secondArcher: 30,
-  specialElite: 60,
+  specialElite: 55,
 } as const;
 
 export const PROMOTION_OPTIONS: Record<'infantry' | 'archer' | 'cavalry', UnitKind[]> = {

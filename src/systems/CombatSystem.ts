@@ -6,6 +6,7 @@ import { CombatUnit, type AttackTarget } from '../entities/CombatUnit';
 
 const CAVALRY = new Set(['knight', 'chariot', 'wingedHussar', 'dragoon']);
 const RANGED = new Set(['archer', 'musketeer', 'gatlingGunner', 'javelin', 'retiarius', 'fireArcher', 'siphonarioi', 'dragoon']);
+const SIPHONARIOI_ATTACK_RANGE_TILES = 4;
 const FRONT_TARGETERS = new Set([
   'soldier', 'spearman', 'halberd', 'paladin', 'crusader', 'spartan', 'shieldGuard',
   'knight', 'chariot', 'wingedHussar', 'dragoon', 'fenrir', 'ronin', 'viking', 'sanada',
@@ -88,20 +89,25 @@ export class CombatSystem {
 
   private updateSiphonarioi(unit: CombatUnit, enemies: CombatUnit[], enemyBase: BaseEntity, now: number): void {
     const direction = unit.team === 'player' ? 1 : -1;
-    const targets = enemies.filter((enemy) => enemy.alive
+    const recognizedTargets = enemies.filter((enemy) => enemy.alive
       && direction * (enemy.x - unit.x) >= -18
       && Math.abs(enemy.x - unit.x) <= unit.definition.rangeTiles * TILE_SIZE + 18);
-    const baseInRange = this.canAttackBase(unit, enemyBase);
-    if (targets.length === 0 && !baseInRange) {
+    const attackTargets = enemies.filter((enemy) => enemy.alive
+      && direction * (enemy.x - unit.x) >= -18
+      && Math.abs(enemy.x - unit.x) <= SIPHONARIOI_ATTACK_RANGE_TILES * TILE_SIZE + 18);
+    const baseRecognized = this.canAttackBase(unit, enemyBase);
+    const baseInAttackRange = this.canAttackBase(unit, enemyBase, SIPHONARIOI_ATTACK_RANGE_TILES);
+    const canContinueAttacking = unit.isChanneling && (attackTargets.length > 0 || baseInAttackRange);
+    if (recognizedTargets.length === 0 && !baseRecognized && !canContinueAttacking) {
       unit.stopChannel();
       return;
     }
     unit.startChannel('flame', now, 1000);
     if (!unit.consumeChannelTick(now, unit.definition.attackInterval)) return;
-    targets.forEach((target) => {
+    attackTargets.forEach((target) => {
       if (target.alive) this.applyUnitDamage(unit, target);
     });
-    if (baseInRange) this.applyBaseDamage(unit, enemyBase);
+    if (baseInAttackRange) this.applyBaseDamage(unit, enemyBase);
   }
 
   hasTargetInRange(unit: CombatUnit, enemies: CombatUnit[]): boolean {
@@ -221,12 +227,18 @@ export class CombatSystem {
   }
 
   private inRange(attacker: CombatUnit, target: CombatUnit): boolean {
-    return Math.abs(attacker.x - target.x) <= attacker.definition.rangeTiles * TILE_SIZE + 18;
+    return Math.abs(attacker.x - target.x) <= this.getAttackRangeTiles(attacker) * TILE_SIZE + 18;
   }
 
-  private canAttackBase(unit: CombatUnit, base: BaseEntity): boolean {
+  private canAttackBase(unit: CombatUnit, base: BaseEntity, rangeTiles = this.getAttackRangeTiles(unit)): boolean {
     const baseX = unit.team === 'player' ? ENEMY_BASE_X : PLAYER_BASE_X;
-    return base.hp > 0 && Math.abs(unit.x - baseX) <= unit.definition.rangeTiles * TILE_SIZE + 135;
+    return base.hp > 0 && Math.abs(unit.x - baseX) <= rangeTiles * TILE_SIZE + 135;
+  }
+
+  private getAttackRangeTiles(unit: CombatUnit): number {
+    return unit.definition.kind === 'shieldGuard' && unit.shieldHp === 0
+      ? 1.5
+      : unit.definition.rangeTiles;
   }
 
   private prepareOpeningAttack(unit: CombatUnit, now: number, interval: number): void {

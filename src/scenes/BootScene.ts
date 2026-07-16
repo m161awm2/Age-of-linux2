@@ -21,7 +21,8 @@ export class BootScene extends Phaser.Scene {
     this.load.on('complete', () => { bar.destroy(); label.destroy(); });
     this.load.setBaseURL(import.meta.env.BASE_URL);
     IMAGE_ASSETS.forEach(({ key, file }) => this.load.image(key, file));
-    this.load.audio('bgm', 'assets/audio/bgm.mp3');
+    this.load.audio('bgm', 'assets/audio/main_theme.mp3');
+    this.load.audio('hellBgm', 'assets/audio/Burning Castle.mp3');
     UNIT_SHEETS.forEach((asset) => this.load.spritesheet(asset.key, asset.file, {
       frameWidth: asset.frameWidth,
       frameHeight: asset.frameHeight,

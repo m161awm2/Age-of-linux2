@@ -6,17 +6,32 @@ type AdjustableSound = Phaser.Sound.BaseSound & { setVolume(value: number): Phas
 
 export class AudioService {
   private static bgm?: AdjustableSound;
+  private static hellBgm?: AdjustableSound;
+  private static activeBgm?: AdjustableSound;
 
   static prepare(scene: Phaser.Scene): void {
-    // 화면 전환이나 브라우저 탭 포커스 해제 시에도 BGM을 계속 재생한다.
-    scene.sound.pauseOnBlur = false;
     if (!this.bgm) {
       this.bgm = scene.sound.add('bgm', { loop: true, volume: this.getVolume() }) as AdjustableSound;
     }
-    this.bgm.setVolume(this.getVolume());
-    if (this.bgm.isPlaying) return;
+    this.switchTo(scene, this.bgm);
+  }
+
+  static playHellTheme(scene: Phaser.Scene): void {
+    if (!this.hellBgm) {
+      this.hellBgm = scene.sound.add('hellBgm', { loop: true, volume: this.getVolume() }) as AdjustableSound;
+    }
+    this.switchTo(scene, this.hellBgm);
+  }
+
+  private static switchTo(scene: Phaser.Scene, nextBgm: AdjustableSound): void {
+    // 화면 전환이나 브라우저 탭 포커스 해제 시에도 BGM을 계속 재생한다.
+    scene.sound.pauseOnBlur = false;
+    if (this.activeBgm !== nextBgm) this.activeBgm?.stop();
+    this.activeBgm = nextBgm;
+    nextBgm.setVolume(this.getVolume());
+    if (nextBgm.isPlaying) return;
     if (!scene.sound.locked) {
-      this.bgm.play();
+      nextBgm.play();
       return;
     }
     scene.input.once(Phaser.Input.Events.POINTER_DOWN, () => {
@@ -33,10 +48,10 @@ export class AudioService {
   static setVolume(volume: number): void {
     const normalized = Phaser.Math.Clamp(volume, 0, 1);
     window.localStorage.setItem(VOLUME_KEY, normalized.toString());
-    this.bgm?.setVolume(normalized);
+    this.activeBgm?.setVolume(normalized);
   }
 
   private static play(): void {
-    if (this.bgm && !this.bgm.isPlaying) this.bgm.play();
+    if (this.activeBgm && !this.activeBgm.isPlaying) this.activeBgm.play();
   }
 }

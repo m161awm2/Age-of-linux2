@@ -89,8 +89,8 @@ const CONDITIONAL_STATS: Partial<Record<UnitKind, ConditionalStats>> = {
   },
   shieldGuard: {
     condition: '방패 8 소진 후',
-    effects: ['공격력 5→7', '롱소드 모드로 전환'],
-    overrides: { damage: '5→7', dps: '5.00→7.00' },
+    effects: ['공격력 5→7', '사거리 1→1.5칸', '롱소드 모드로 전환'],
+    overrides: { damage: '5→7', dps: '5.00→7.00', range: '1→1.5칸' },
   },
   fireArcher: {
     condition: '불화살 적중 후 1.5초',
@@ -102,12 +102,13 @@ const CONDITIONAL_STATS: Partial<Record<UnitKind, ConditionalStats>> = {
   },
   retiarius: {
     condition: '원거리 투창 / 근거리 전환',
-    effects: ['투창 피해 9', '투창 2초마다 재충전', '근거리 단타 피해 16'],
-    overrides: { damage: '9→16', dps: '10.00→17.78', range: '5→1.5칸' },
+    effects: ['투창 피해 9', '투창 2초마다 재충전', '근거리 단타 피해 12'],
+    overrides: { damage: '9→12', dps: '10.00→13.33', range: '5→1.5칸' },
   },
   siphonarioi: {
-    condition: '전방 3칸',
-    effects: ['이동속도 30% 감소', '1초 점화 준비', '0.5초마다 범위 피해', '적중 시 25% 확률로 중첩 화상'],
+    condition: '전방 3칸 내 적 인식',
+    effects: ['공격 범위 전방 4칸', '이동속도 30% 감소', '1초 점화 준비', '0.5초마다 범위 피해', '적중 시 25% 확률로 중첩 화상'],
+    overrides: { range: '인식 3 / 공격 4칸' },
   },
   wingedHussar: {
     condition: '8칸 돌진 시',

@@ -111,7 +111,7 @@ export class CombatUnit extends Phaser.GameObjects.Container {
   get isStunned(): boolean { return this.alive && this.stunnedUntil > this.scene.time.now; }
   get isChanneling(): boolean { return this.channelKind !== null; }
   get attackDamage(): number {
-    if (this.definition.kind === 'retiarius' && this.isRetiariusMelee) return 16;
+    if (this.definition.kind === 'retiarius' && this.isRetiariusMelee) return 12;
     return this.definition.damage + (this.definition.kind === 'shieldGuard' && this.shieldHp === 0 ? 2 : 0);
   }
 
@@ -379,7 +379,7 @@ export class CombatUnit extends Phaser.GameObjects.Container {
       .setPosition(this.x + direction * 42, this.y - 69)
       .setOrigin(direction > 0 ? 0 : 1, .5)
       .setFlipX(direction < 0)
-      .setDisplaySize(211, 96)
+      .setDisplaySize(281, 96)
       .setAlpha(1);
   }
 
