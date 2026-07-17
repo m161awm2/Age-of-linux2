@@ -3,7 +3,7 @@ import type { RealtimeChannel } from '@supabase/supabase-js';
 import {
   DIFFICULTIES, ENEMY_BASE_X, GROUND_TEXTURE_HEIGHT, GROUND_TEXTURE_SURFACE_Y, GROUND_Y,
   HILLS_TEXTURE_BOTTOM_Y, PLAYER_BASE_X, PROMOTION_COSTS, PROMOTION_OPTIONS, SECOND_PROMOTIONS,
-  SPECIAL_ELITE, SPECIAL_UNLOCK_COST, WORLD_HEIGHT, WORLD_WIDTH,
+  SPECIAL_ELITE, WORLD_HEIGHT, WORLD_WIDTH,
 } from '../data/constants';
 import { UNITS } from '../data/units';
 import type { Difficulty, GameLaunchData, Team, UnitKind } from '../data/types';
@@ -19,6 +19,7 @@ import { EconomySystem } from '../systems/EconomySystem';
 import { MovementSystem } from '../systems/MovementSystem';
 import { GameHud, type HudState, type ProductionSlot, type PromotionMode, type PromotionOption } from '../ui/GameHud';
 import { SettingsPanel } from '../ui/SettingsPanel';
+import { PlayerProgressService, type SpecialPath } from '../services/PlayerProgressService';
 
 export class GameScene extends Phaser.Scene {
   private difficulty: Difficulty = 'Hard';
@@ -64,7 +65,7 @@ export class GameScene extends Phaser.Scene {
     this.difficulty = data.difficulty ?? 'Hard';
     this.pvp = data.pvp;
     this.localTeam = this.pvp?.isHost === false ? 'enemy' : 'player';
-    this.progress = new GameProgressService();
+    this.progress = new GameProgressService(PlayerProgressService.current.unlockedSpecialPaths);
     this.economy = new EconomySystem();
     this.movement = new MovementSystem();
     this.playerUnits = [];
@@ -408,15 +409,30 @@ export class GameScene extends Phaser.Scene {
 
   private getSpecialPromotions(): PromotionOption[] {
     if (!this.progress.specialPath) {
-      return (['ronin', 'fenrir'] as const).map((kind, index) => ({
-        id: `special:${kind}`, hotkey: `${index + 5}`, label: `${UNITS[kind].name} 계열`, cost: SPECIAL_UNLOCK_COST[kind],
-        description: kind === 'ronin' ? '발도술 → 사나다 사무라이' : '안티 레인지 → 바이킹 광전사',
-        disabled: this.economy.gold < SPECIAL_UNLOCK_COST[kind],
-      }));
+      const paths: SpecialPath[] = ['ronin', 'fenrir'];
+      return paths.map((path, index) => {
+        const unlocked = this.progress.unlockedSpecialPaths.includes(path);
+        return {
+        id: `special:${path}`,
+        hotkey: `${index + 7}`,
+        label: UNITS[path].name,
+        cost: PROMOTION_COSTS.special,
+        costLabel: unlocked ? `${PROMOTION_COSTS.special}G` : '상점 해금 필요',
+        description: unlocked ? UNITS[path].description : '상점에서 이 스페셜 계열을 먼저 해금하세요.',
+        disabled: !unlocked || this.economy.gold < PROMOTION_COSTS.special,
+        };
+      });
     }
-    if (this.progress.special === this.progress.specialPath) {
+    if (this.progress.specialPath && this.progress.special === this.progress.specialPath) {
       const elite = SPECIAL_ELITE[this.progress.specialPath];
-      return [{ id: `elite:${elite}`, hotkey: '7', label: UNITS[elite].name, cost: PROMOTION_COSTS.specialElite, description: UNITS[elite].description, disabled: this.economy.gold < PROMOTION_COSTS.specialElite }];
+      return [{
+        id: `elite:${elite}`,
+        hotkey: '7',
+        label: UNITS[elite].name,
+        cost: PROMOTION_COSTS.specialElite,
+        description: UNITS[elite].description,
+        disabled: this.economy.gold < PROMOTION_COSTS.specialElite,
+      }];
     }
     return [];
   }
@@ -439,10 +455,16 @@ export class GameScene extends Phaser.Scene {
       else if (PROMOTION_OPTIONS.cavalry.includes(rawKind)) this.progress.setFirstPromotion('cavalry', rawKind);
       else if (SECOND_PROMOTIONS[this.progress.infantry] === rawKind) this.progress.applySecondPromotion('infantry');
       else if (SECOND_PROMOTIONS[this.progress.archer] === rawKind) this.progress.applySecondPromotion('archer');
-    } else if (type === 'special' && (rawKind === 'ronin' || rawKind === 'fenrir')) {
-      const cost = SPECIAL_UNLOCK_COST[rawKind];
-      if (!this.economy.spend(cost)) return;
-      this.progress.unlockSpecial(rawKind);
+    } else if (type === 'special') {
+      if (!this.economy.spend(PROMOTION_COSTS.special)) return;
+      const selected = this.progress.selectSpecial(rawKind as SpecialPath);
+      if (!selected) {
+        this.economy.reward(PROMOTION_COSTS.special);
+        return;
+      }
+      this.hud.message(`${UNITS[selected].name} 계열을 선택했습니다.`);
+      this.closePromotion();
+      return;
     } else if (type === 'elite') {
       if (!this.economy.spend(PROMOTION_COSTS.specialElite)) return;
       this.progress.promoteSpecial();

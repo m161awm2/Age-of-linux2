@@ -9,6 +9,7 @@ export interface PromotionOption {
   hotkey: string;
   label: string;
   cost: number;
+  costLabel?: string;
   description: string;
   disabled: boolean;
 }
@@ -73,7 +74,7 @@ export class GameHud {
         <div class="promotion-card">
           <button class="modal-close" data-ref="close" aria-label="닫기">×</button>
           <h2 data-ref="modal-title">전직</h2>
-          <p class="modal-help">전직은 현재 생산 병종을 영구 교체합니다.</p>
+          <p class="modal-help">스페셜 병종을 선택하면 해당 계열의 엘리트 병종으로 전직할 수 있습니다.</p>
           <div class="promotion-options" data-ref="modal-options"></div>
         </div>
       </div>`;
@@ -150,7 +151,7 @@ export class GameHud {
   }
 
   openPromotion(mode: PromotionMode, options: PromotionOption[]): void {
-    this.modalTitle.textContent = mode === 'normal' ? '일반 병종 전직' : '스페셜 전직';
+    this.modalTitle.textContent = mode === 'normal' ? '일반 병종 전직' : '스페셜 병종 전직';
     this.modalOptions.innerHTML = '';
     if (options.length === 0) {
       this.modalOptions.innerHTML = '<p class="empty-options">현재 가능한 전직이 없습니다.</p>';
@@ -159,7 +160,7 @@ export class GameHud {
       const button = document.createElement('button');
       button.className = 'promotion-option';
       button.disabled = option.disabled;
-      button.innerHTML = `<kbd>${option.hotkey}</kbd><strong>${option.label}</strong><span>${option.description}</span><em>${option.cost}G</em>`;
+      button.innerHTML = `<kbd>${option.hotkey}</kbd><strong>${option.label}</strong><span>${option.description}</span><em>${option.costLabel ?? `${option.cost}G`}</em>`;
       button.addEventListener('click', () => this.callbacks.onPromotion(option.id));
       this.modalOptions.appendChild(button);
     });

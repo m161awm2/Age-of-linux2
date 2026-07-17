@@ -1,5 +1,7 @@
 import type { User } from '@supabase/supabase-js';
 import { supabase } from './SupabaseClient';
+import { PlayerProgressService } from './PlayerProgressService';
+import { TutorialProgressService } from './TutorialProgressService';
 
 export interface SignUpResult {
   signedIn: boolean;
@@ -50,6 +52,8 @@ export class AuthService {
 
   static async signOut(): Promise<void> {
     await supabase.auth.signOut();
+    PlayerProgressService.clear();
+    TutorialProgressService.resetForAccount();
   }
 
   static isValidLoginId(loginId: string): boolean {

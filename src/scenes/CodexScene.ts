@@ -21,6 +21,11 @@ interface CodexTree {
   branches: Array<{ first: UnitKind; second?: UnitKind }>;
 }
 
+interface CodexLaunchData {
+  unit?: UnitKind;
+  returnScene?: 'StartScene' | 'ShopScene';
+}
+
 const CODEX_TREES: CodexTree[] = [
   {
     family: 'infantry',
@@ -147,8 +152,18 @@ export class CodexScene extends Phaser.Scene {
   private view: 'gallery' | 'detail' = 'gallery';
   private selectedTreeFamily: UnitFamily = 'infantry';
   private pageObjects: Phaser.GameObjects.GameObject[] = [];
+  private initialUnit: UnitKind | null = null;
+  private returnScene: 'StartScene' | 'ShopScene' = 'StartScene';
 
   constructor() { super('CodexScene'); }
+
+  init(data: CodexLaunchData): void {
+    const requestedIndex = data.unit ? UNIT_LIST.findIndex(({ kind }) => kind === data.unit) : -1;
+    this.initialUnit = requestedIndex >= 0 ? data.unit! : null;
+    this.index = requestedIndex >= 0 ? requestedIndex : 0;
+    this.selectedTreeFamily = requestedIndex >= 0 ? UNIT_LIST[requestedIndex]!.family : 'infantry';
+    this.returnScene = data.returnScene === 'ShopScene' ? 'ShopScene' : 'StartScene';
+  }
 
   create(): void {
     const { width, height } = this.scale;
@@ -171,11 +186,13 @@ export class CodexScene extends Phaser.Scene {
     this.input.keyboard?.on('keydown-LEFT', () => { if (this.view === 'detail') this.changePage(-1); });
     this.input.keyboard?.on('keydown-RIGHT', () => { if (this.view === 'detail') this.changePage(1); });
     this.input.keyboard?.on('keydown-ESC', () => {
-      if (this.view === 'detail') this.showGallery();
-      else this.scene.start('StartScene');
+      if (this.view === 'detail' && this.returnScene === 'ShopScene') this.scene.start('ShopScene');
+      else if (this.view === 'detail') this.showGallery();
+      else this.scene.start(this.returnScene);
     });
 
-    this.showGallery();
+    if (this.initialUnit) this.showPage();
+    else this.showGallery();
   }
 
   private clearPage(): void {
@@ -525,6 +542,6 @@ export class CodexScene extends Phaser.Scene {
       backgroundColor: '#25372dcc', padding: { x: 12, y: 8 },
     }).setOrigin(.5).setInteractive({ useHandCursor: true });
     button.on('pointerover', () => button.setColor('#ffffff')).on('pointerout', () => button.setColor('#e7dfbd'))
-      .on('pointerdown', () => this.scene.start('StartScene'));
+      .on('pointerdown', () => this.scene.start(this.returnScene));
   }
 }

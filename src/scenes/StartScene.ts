@@ -6,6 +6,7 @@ import { SettingsPanel } from '../ui/SettingsPanel';
 import { TutorialProgressService, type MenuTutorialStep } from '../services/TutorialProgressService';
 import { AuthService } from '../services/AuthService';
 import { HomeChatPanel } from '../ui/HomeChatPanel';
+import { PlayerProgressService } from '../services/PlayerProgressService';
 
 const DIFFICULTY_STYLES: Record<Difficulty, { top: number; bottom: number; border: number; glow: number; symbol: string; hint: string }> = {
   Easy: { top: 0x39895b, bottom: 0x17452e, border: 0x8be2aa, glow: 0x69d894, symbol: '◆', hint: '입문' },
@@ -46,6 +47,13 @@ export class StartScene extends Phaser.Scene {
     this.add.image(width / 2, height, 'ground').setOrigin(.5, 1).setDisplaySize(width, height);
     this.add.rectangle(width / 2, height / 2, width, height, 0x07120e, .42);
     this.createLogoutButton(width - 70, 36);
+    this.add.rectangle(70, 36, 112, 34, 0x142735, .94).setStrokeStyle(1, 0x5792aa, .65);
+    this.add.text(47, 36, '💎', {
+      fontFamily: 'Apple Color Emoji, sans-serif', fontSize: '15px',
+    }).setOrigin(.5);
+    this.add.text(66, 33, `${PlayerProgressService.current.gold}`, {
+      fontFamily: 'Pretendard, sans-serif', fontSize: '15px', fontStyle: 'bold', color: '#9ee8ff',
+    }).setOrigin(0, .5);
     const chatPanel = new HomeChatPanel();
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => chatPanel.destroy());
 
@@ -69,26 +77,29 @@ export class StartScene extends Phaser.Scene {
       }
     });
     const modeModal = modeModalData.modal;
-    const compact = height < 700;
+    const compact = height < 760;
     const menuWidth = mobileLandscape ? Math.min(160, (width * .58 - 42) / 2) : Math.min(250, width * .3);
-    const menuHeight = mobileLandscape ? 38 : compact ? 42 : 54;
-    const menuGap = mobileLandscape ? 6 : compact ? 6 : 8;
+    const menuHeight = mobileLandscape ? 38 : compact ? 36 : 54;
+    const menuGap = mobileLandscape ? 6 : compact ? 4 : 8;
     const menuX = 20 + menuWidth / 2;
-    const firstMenuY = mobileLandscape ? 142 : compact ? Math.max(225, height * .41) : Math.max(350, height * .5);
-    const menuItems: Array<[string, string, number, () => void]> = [
+    const firstMenuY = mobileLandscape ? 142 : compact ? Math.max(260, height * .38) : Math.max(350, height * .5);
+    const menuItems: Array<[string, string, number, () => void, MenuTutorialStep?]> = [
       ['▶', '게임 시작', 0xb8d56f, () => {
         modeModal.setVisible(true);
         if (TutorialProgressService.getMenuStep() === 'gameStart') {
           TutorialProgressService.setMenuStep('campaign');
           this.showTutorialSpotlight(modeModalData.campaignButton, 'campaign');
         }
-      }],
-      ['⚙', '설정', 0xe0c36b, () => settingsPanel.open()],
-      ['▤', '도감', 0x87c9b0, () => this.scene.start('CodexScene')],
+      }, 'gameStart'],
+      ['●', '상점', 0xe0b65e, () => this.scene.start('ShopScene', {
+        tutorial: TutorialProgressService.getMenuStep() === 'shop',
+      }), 'shop'],
+      ['⚙', '설정', 0xe0c36b, () => settingsPanel.open(), 'settings'],
+      ['▤', '도감', 0x87c9b0, () => this.scene.start('CodexScene'), 'codex'],
       ['?', '튜토리얼', 0x9db7e0, () => this.scene.start('TutorialScene', { forced: false })],
-      ['♛', '랭크', 0xd7b564, () => this.scene.start('RankScene')],
+      ['♛', '랭크', 0xd7b564, () => this.scene.start('RankScene'), 'rank'],
     ];
-    menuItems.forEach(([icon, label, accent, action], index) => {
+    menuItems.forEach(([icon, label, accent, action, tutorialTarget], index) => {
       const column = mobileLandscape ? index % 2 : 0;
       const row = mobileLandscape ? Math.floor(index / 2) : index;
       const button = this.createMenuButton(
@@ -96,9 +107,7 @@ export class StartScene extends Phaser.Scene {
         firstMenuY + row * (menuHeight + menuGap),
         menuWidth, menuHeight, icon, label, accent, action,
       );
-      const tutorialSteps: MenuTutorialStep[] = ['gameStart', 'settings', 'codex', 'rank'];
-      const tutorialStep = tutorialSteps[index];
-      if (tutorialStep) this.tutorialTargets[tutorialStep] = button;
+      if (tutorialTarget) this.tutorialTargets[tutorialTarget] = button;
     });
 
     const tutorialStep = TutorialProgressService.getMenuStep();
@@ -370,6 +379,7 @@ export class StartScene extends Phaser.Scene {
     this.tweens.add({ targets: outline, alpha: .35, duration: 650, yoyo: true, repeat: -1 });
 
     const copy: Record<MenuTutorialStep, { title: string; text: string }> = {
+      shop: { title: '첫 스페셜 유닛 구매', text: '상점을 열고 사무라이·바이킹 계열 중 하나를 구매해 주세요.' },
       settings: { title: '설정', text: '배경음악 음량을 조절하고 저장할 수 있습니다.' },
       codex: { title: '병종 도감', text: '모든 병종의 능력치, 특징과 전직 계보를 확인합니다.' },
       rank: { title: '랭크', text: '난이도별 기록과 상위권의 병종 조합을 비교합니다.' },

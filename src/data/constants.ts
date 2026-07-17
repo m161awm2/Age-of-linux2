@@ -29,6 +29,7 @@ export const PROMOTION_COSTS = {
   cavalry: 20,
   secondInfantry: 30,
   secondArcher: 30,
+  special: 20,
   specialElite: 55,
 } as const;
 
@@ -47,5 +48,13 @@ export const SECOND_PROMOTIONS: Partial<Record<UnitKind, UnitKind>> = {
   fireArcher: 'siphonarioi',
 };
 
-export const SPECIAL_UNLOCK_COST: Record<'ronin' | 'fenrir', number> = { ronin: 20, fenrir: 20 };
+export const SPECIAL_UNLOCK_COST: Record<'ronin' | 'fenrir', number> = { ronin: 200, fenrir: 200 };
 export const SPECIAL_ELITE: Record<'ronin' | 'fenrir', UnitKind> = { ronin: 'sanada', fenrir: 'viking' };
+
+export const CAMPAIGN_GOLD_REWARDS: Record<Difficulty, number> = {
+  Easy: 10,
+  Normal: 20,
+  Medium: 40,
+  Hard: 70,
+  Impossible: 100,
+};

@@ -1,8 +1,9 @@
 import Phaser from 'phaser';
-import { DIFFICULTIES } from '../data/constants';
+import { CAMPAIGN_GOLD_REWARDS, DIFFICULTIES } from '../data/constants';
 import type { GameResultData } from '../data/types';
 import { RankService } from '../services/RankService';
 import { AuthService } from '../services/AuthService';
+import { PlayerProgressService } from '../services/PlayerProgressService';
 
 export class ResultScene extends Phaser.Scene {
   private result!: GameResultData;
@@ -25,14 +26,34 @@ export class ResultScene extends Phaser.Scene {
     this.add.text(width / 2, height * .46, `${modeLabel} · 전투 시간 ${minutes}:${seconds}`, {
       fontFamily: 'Pretendard, sans-serif', fontSize: '22px', color: '#f8efd5',
     }).setOrigin(.5);
-    const actionsY = this.result.victory ? height * .72 : height * .62;
+    const actionsY = this.result.victory ? height * .76 : height * .62;
     this.createButton(width / 2 - 105, actionsY, this.result.isPvp ? '1대1 로비' : '다시 전투', () => {
       if (this.result.isPvp) this.scene.start('OnlineLobbyScene');
       else this.scene.start('GameScene', { difficulty: this.result.difficulty });
     });
     this.createButton(width / 2 + 105, actionsY, '시작 화면', () => this.scene.start('StartScene'));
-    if (this.result.victory && !this.result.isPvp) this.createRankSubmission(width / 2, height * .59);
+    if (this.result.victory && !this.result.isPvp) {
+      this.createCampaignReward(width / 2, height * .54);
+      this.createRankSubmission(width / 2, height * .63);
+    }
     this.input.keyboard?.on('keydown-R', () => this.scene.start(this.result.isPvp ? 'OnlineLobbyScene' : 'GameScene', this.result.isPvp ? undefined : { difficulty: this.result.difficulty }));
+  }
+
+  private createCampaignReward(x: number, y: number): void {
+    const expected = CAMPAIGN_GOLD_REWARDS[this.result.difficulty];
+    const status = this.add.text(x, y, `캠페인 보상 +${expected}💎 지급 중…`, {
+      fontFamily: 'Pretendard, Apple Color Emoji, sans-serif', fontSize: '18px', fontStyle: 'bold', color: '#9ee8ff', align: 'center',
+    }).setOrigin(.5);
+    if (!this.result.rankedRunId) {
+      status.setText('보상 서버에 연결되지 않아 보석을 지급하지 못했습니다.').setColor('#e7b29d');
+      return;
+    }
+    void PlayerProgressService.claimCampaignReward(this.result.rankedRunId, this.result.difficulty)
+      .then((reward) => status.setText(`클리어 보상 +${reward.awarded}💎  ·  보유 ${reward.gold}💎`).setColor('#9ee8ff'))
+      .catch((error) => {
+        console.warn('캠페인 보석 보상 지급 실패', error);
+        status.setText('클리어 보상을 지급하지 못했습니다.').setColor('#ffb09c');
+      });
   }
 
   private createRankSubmission(x: number, y: number): void {

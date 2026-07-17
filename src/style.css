@@ -102,7 +102,7 @@ kbd {
 .promotion-card h2 { margin: 0; color: #d9e99f; font: 900 28px Georgia, serif; }
 .modal-help { margin: 7px 0 20px; color: #aeb9a7; font-size: 13px; }
 .modal-close { position: absolute; right: 15px; top: 12px; border: 0; background: none; color: #c9c4aa; font-size: 30px; cursor: pointer; }
-.promotion-options { display: grid; gap: 10px; }
+.promotion-options { display: grid; gap: 10px; max-height: min(58vh, 520px); overflow-y: auto; }
 .promotion-option { display: grid; grid-template-columns: 38px 150px 1fr 55px; align-items: center; gap: 12px; min-height: 66px; padding: 10px 14px; text-align: left; border: 1px solid #526c55; border-radius: 10px; background: #1e3227; color: #f2ecd7; cursor: pointer; }
 .promotion-option:hover:not(:disabled) { border-color: #bdd57b; background: #294432; }
 .promotion-option:disabled { opacity: .45; cursor: not-allowed; }

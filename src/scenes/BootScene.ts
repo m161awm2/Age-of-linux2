@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { IMAGE_ASSETS, UNIT_SHEETS } from '../assets/manifest';
 import { AuthService } from '../services/AuthService';
+import { PlayerProgressService } from '../services/PlayerProgressService';
 
 export class BootScene extends Phaser.Scene {
   constructor() { super('BootScene'); }
@@ -51,7 +52,15 @@ export class BootScene extends Phaser.Scene {
     loadingScreen?.classList.add('loading-complete');
     window.setTimeout(() => loadingScreen?.remove(), 450);
     void AuthService.getUser()
-      .then((user) => this.scene.start(user ? 'StartScene' : 'AuthScene'))
+      .then(async (user) => {
+        if (!user) { this.scene.start('AuthScene'); return; }
+        try {
+          await PlayerProgressService.load(true);
+        } catch (error) {
+          console.warn('계정 진행도를 불러오지 못해 기본값으로 시작합니다.', error);
+        }
+        this.scene.start('StartScene');
+      })
       .catch(() => this.scene.start('AuthScene'));
   }
 }
