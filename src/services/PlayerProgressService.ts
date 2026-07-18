@@ -1,7 +1,7 @@
 import type { Difficulty } from '../data/types';
 import { supabase } from './SupabaseClient';
 
-export type SpecialPath = 'ronin' | 'fenrir';
+export type SpecialPath = 'ronin' | 'fenrir' | 'hatchling';
 
 export interface PlayerProgress {
   gold: number;
@@ -78,7 +78,7 @@ export class PlayerProgressService {
   private static parse(value: unknown): PlayerProgress {
     const raw = (value ?? {}) as Record<string, unknown>;
     const paths = Array.isArray(raw.unlocked_special_paths)
-      ? raw.unlocked_special_paths.filter((path): path is SpecialPath => path === 'ronin' || path === 'fenrir')
+      ? raw.unlocked_special_paths.filter((path): path is SpecialPath => path === 'ronin' || path === 'fenrir' || path === 'hatchling')
       : [];
     return {
       gold: Math.max(0, Number(raw.gold ?? 0)),

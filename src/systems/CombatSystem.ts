@@ -9,8 +9,11 @@ const RANGED = new Set(['archer', 'musketeer', 'gatlingGunner', 'javelin', 'reti
 const SIPHONARIOI_ATTACK_RANGE_TILES = 4;
 const FRONT_TARGETERS = new Set([
   'soldier', 'spearman', 'halberd', 'paladin', 'crusader', 'spartan', 'shieldGuard',
-  'knight', 'chariot', 'wingedHussar', 'dragoon', 'fenrir', 'ronin', 'viking', 'sanada',
+  'knight', 'chariot', 'wingedHussar', 'dragoon', 'fenrir', 'ronin', 'viking', 'sanada', 'hatchling', 'adultDragon',
 ]);
+const DRAGON_BREATH_RECOGNITION_TILES = 3;
+const DRAGON_BREATH_RANGE_TILES = 5;
+const DRAGON_BREATH_DAMAGE = 23;
 
 export class CombatSystem {
   constructor(private readonly scene: Phaser.Scene) {
@@ -28,6 +31,10 @@ export class CombatSystem {
       }
       if (unit.definition.kind === 'siphonarioi') {
         this.updateSiphonarioi(unit, enemies, enemyBase, now);
+        continue;
+      }
+      if (unit.definition.kind === 'adultDragon') {
+        this.updateAdultDragon(unit, enemies, enemyBase, now);
         continue;
       }
       if (unit.attackLocked) continue;
@@ -50,6 +57,32 @@ export class CombatSystem {
         unit.setDragoonMode(false);
       }
     }
+  }
+
+  private updateAdultDragon(unit: CombatUnit, enemies: CombatUnit[], enemyBase: BaseEntity, now: number): void {
+    if (unit.attackLocked) return;
+    const direction = unit.team === 'player' ? 1 : -1;
+    if (now >= unit.dragonBreathReadyAt) {
+      const recognized = enemies.some((enemy) => enemy.alive
+        && direction * (enemy.x - unit.x) >= -enemy.collisionRadius
+        && Math.abs(enemy.x - unit.x) <= DRAGON_BREATH_RECOGNITION_TILES * TILE_SIZE + unit.collisionRadius);
+      const baseRecognized = this.canAttackBase(unit, enemyBase, DRAGON_BREATH_RECOGNITION_TILES);
+      if (recognized || baseRecognized) {
+        const targets: AttackTarget[] = enemies.filter((enemy) => enemy.alive
+          && direction * (enemy.x - unit.x) >= -enemy.collisionRadius
+          && Math.abs(enemy.x - unit.x) <= DRAGON_BREATH_RANGE_TILES * TILE_SIZE + unit.collisionRadius);
+        if (this.canAttackBase(unit, enemyBase, DRAGON_BREATH_RANGE_TILES)) targets.push(enemyBase);
+        if (targets.length > 0) {
+          unit.startDragonAttack('breath', targets, now);
+          return;
+        }
+      }
+    }
+    const target: AttackTarget | null = this.findTarget(unit, enemies)
+      ?? (this.canAttackBase(unit, enemyBase) ? enemyBase : null);
+    if (!target) return;
+    this.prepareOpeningAttack(unit, now, unit.definition.attackInterval);
+    unit.startDragonAttack(target instanceof CombatUnit && Math.random() < .3 ? 'tail' : 'bite', [target], now);
   }
 
   private updateGatling(unit: CombatUnit, enemies: CombatUnit[], enemyBase: BaseEntity, now: number): void {
@@ -125,6 +158,10 @@ export class CombatSystem {
 
   private onHitFrame(attacker: CombatUnit, target: AttackTarget | null): void {
     if (!attacker.alive || !target) return;
+    if (attacker.definition.kind === 'adultDragon' && attacker.dragonAttackKind === 'breath') {
+      this.applyDragonBreath(attacker);
+      return;
+    }
     if (target instanceof CombatUnit) {
       if (!target.alive) return;
       this.flashAttack(attacker, target);
@@ -139,6 +176,8 @@ export class CombatSystem {
   private applyUnitDamage(attacker: CombatUnit, target: CombatUnit): void {
     const now = this.scene.time.now;
     const isIaiStrike = attacker.definition.kind === 'ronin' && attacker.firstStrike;
+    const canBeParried = attacker.definition.kind !== 'siphonarioi'
+      && !(attacker.definition.kind === 'adultDragon' && attacker.dragonAttackKind === 'breath');
     const distance = Math.abs(attacker.x - target.x);
     const dragoonMelee = attacker.definition.kind === 'dragoon' && distance <= 1.5 * TILE_SIZE;
     let damage = dragoonMelee ? Math.floor(attacker.attackDamage * 1.5) : attacker.attackDamage;
@@ -151,18 +190,17 @@ export class CombatSystem {
     }
     if (attacker.definition.kind === 'fenrir' && RANGED.has(target.definition.kind)) damage = Math.floor(damage * 1.4);
     if (RANGED.has(attacker.definition.kind) && target.definition.kind === 'fenrir' && !dragoonMelee) damage = Math.floor(damage * .6);
-    if (attacker.isBerserking) damage = Math.floor(damage * 2);
     if ((attacker.definition.kind === 'spearman' || attacker.definition.kind === 'halberd') && CAVALRY.has(target.definition.kind)) {
       damage = Math.floor(damage * 1.8);
     }
-    if (attacker.definition.kind === 'halberd') damage += Math.floor(target.definition.hp * .2);
+    if (attacker.definition.kind === 'halberd') damage += Math.floor(target.definition.hp * .15);
     if (attacker.definition.kind === 'ronin' && attacker.firstStrike) {
       damage *= 2;
       attacker.firstStrike = false;
     }
     if (target.isBerserking) damage = Math.max(1, Math.floor(damage * .4));
 
-    if (target.canParry(now)) {
+    if (canBeParried && target.canParry(now)) {
       target.useParry(now);
       const reflected = damage * 2;
       attacker.takeDamage(reflected, now);
@@ -173,9 +211,14 @@ export class CombatSystem {
       const dealt = target.takeDamage(damage, now);
       target.showDamage(damage, chargeBonus > 0 ? '#ffd45c' : '#fff1b4');
       const appliesBurn = attacker.definition.kind === 'fireArcher'
-        || (attacker.definition.kind === 'siphonarioi' && Math.random() < .5);
+        || (attacker.definition.kind === 'siphonarioi' && Math.random() < .5)
+        || attacker.definition.kind === 'hatchling';
       if (appliesBurn && dealt > 0 && target.alive) target.applyBurnStack();
       if (isIaiStrike && target.alive) target.applyStun(now, 400);
+      if (attacker.definition.kind === 'adultDragon' && attacker.dragonAttackKind === 'tail' && target.alive) {
+        target.flashIaiHit();
+        target.applyStun(now, 800);
+      }
       if (attacker.definition.kind === 'viking' && dealt > 0) attacker.heal(1);
       if (attacker.definition.kind === 'crusader' && dealt > 0) {
         attacker.healCounter += 1;
@@ -205,6 +248,21 @@ export class CombatSystem {
     }
   }
 
+  private applyDragonBreath(attacker: CombatUnit): void {
+    const now = this.scene.time.now;
+    this.flashDragonBreath(attacker);
+    attacker.dragonBreathTargets.forEach((target) => {
+      if (target instanceof CombatUnit) {
+        if (!target.alive) return;
+        const dealt = target.takeDamage(DRAGON_BREATH_DAMAGE, now);
+        target.showDamage(DRAGON_BREATH_DAMAGE, '#ff8a42');
+        if (dealt > 0 && target.alive) target.applyBurnStack();
+      } else if (target.hp > 0) {
+        target.takeDamage(DRAGON_BREATH_DAMAGE);
+      }
+    });
+  }
+
   private applyBaseDamage(attacker: CombatUnit, base: BaseEntity): void {
     const now = this.scene.time.now;
     let damage = attacker.attackDamage;
@@ -214,7 +272,6 @@ export class CombatSystem {
       chargeBonus = Math.round((chargeMultiplier - 1) * 100);
       damage = Math.round(damage * chargeMultiplier);
     }
-    if (attacker.isBerserking) damage = Math.floor(damage * 2);
     base.takeDamage(damage);
     if (attacker.definition.kind === 'ronin' && attacker.firstStrike) attacker.firstStrike = false;
     if (chargeBonus > 0) this.flashChargeImpact(attacker, base, chargeBonus);
@@ -227,7 +284,8 @@ export class CombatSystem {
   }
 
   private inRange(attacker: CombatUnit, target: CombatUnit): boolean {
-    return Math.abs(attacker.x - target.x) <= this.getAttackRangeTiles(attacker) * TILE_SIZE + 18;
+    return Math.abs(attacker.x - target.x) <= this.getAttackRangeTiles(attacker) * TILE_SIZE
+      + attacker.collisionRadius + target.collisionRadius - 54;
   }
 
   private canAttackBase(unit: CombatUnit, base: BaseEntity, rangeTiles = this.getAttackRangeTiles(unit)): boolean {
@@ -280,6 +338,19 @@ export class CombatSystem {
     this.scene.tweens.add({ targets: slash, scaleX: 1.8, alpha: 0, duration: 220, onComplete: () => slash.destroy() });
     this.scene.tweens.add({ targets: label, y: label.y - 35, alpha: 0, duration: 700, onComplete: () => label.destroy() });
     this.scene.cameras.main.shake(90, .0025);
+  }
+
+  private flashDragonBreath(attacker: CombatUnit): void {
+    const direction = attacker.team === 'player' ? 1 : -1;
+    const length = DRAGON_BREATH_RANGE_TILES * TILE_SIZE;
+    const effect = this.scene.add.sprite(attacker.x + direction * (attacker.collisionRadius + length / 2), attacker.y - 125, 'dragonBreathFx', 0)
+      .setOrigin(.5)
+      .setFlipX(direction > 0)
+      .setDisplaySize(length, 190)
+      .setDepth(45)
+      .play('dragon-breath-fx');
+    effect.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => effect.destroy());
+    this.scene.cameras.main.shake(130, .002);
   }
 
   private frontSort(team: Team): (a: CombatUnit, b: CombatUnit) => number {

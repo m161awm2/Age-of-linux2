@@ -409,7 +409,7 @@ export class GameScene extends Phaser.Scene {
 
   private getSpecialPromotions(): PromotionOption[] {
     if (!this.progress.specialPath) {
-      const paths: SpecialPath[] = ['ronin', 'fenrir'];
+      const paths: SpecialPath[] = ['ronin', 'fenrir', 'hatchling'];
       return paths.map((path, index) => {
         const unlocked = this.progress.unlockedSpecialPaths.includes(path);
         return {

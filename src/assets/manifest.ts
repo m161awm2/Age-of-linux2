@@ -7,6 +7,12 @@ export interface SpriteAsset {
   frameHeight: number;
   frameOffsetX: number;
   frameOffsetY: number;
+  displayScale?: number;
+  animationFrames?: {
+    idle: { start: number; end: number };
+    move: { start: number; end: number };
+    attack: { start: number; end: number };
+  };
 }
 
 export const UNIT_FRAME_WIDTH = 496;
@@ -29,6 +35,23 @@ const sheet = (
   frameOffsetY,
 });
 
+const dragonActionSheet = (key: string, file: string, frameOffsetY: number): SpriteAsset => ({
+  key,
+  file: `assets/units/${file}`,
+  width: 543 * 4,
+  height: 724,
+  frameWidth: 543,
+  frameHeight: 724,
+  frameOffsetX: 0,
+  frameOffsetY,
+  displayScale: .75,
+  animationFrames: {
+    idle: { start: 0, end: 0 },
+    move: { start: 0, end: 0 },
+    attack: { start: 0, end: 3 },
+  },
+});
+
 export const UNIT_SHEETS: SpriteAsset[] = [
   sheet('soldier', 'soldier.png'), sheet('archer', 'archer.png'), sheet('knight', 'knight.png'),
   sheet('spearman', 'spearman.png'), sheet('paladin', 'paladin.png'), sheet('spartan', 'spartan.png'),
@@ -40,6 +63,9 @@ export const UNIT_SHEETS: SpriteAsset[] = [
   sheet('crusader', 'crusader.png'), sheet('shieldGuard', 'shield-guard.png'), sheet('shieldGuardBroken', 'shield-guard-broken.png'),
   sheet('halberd', 'halberd.png'), sheet('viking', 'viking.png'), sheet('vikingBerserk', 'viking-berserk.png'),
   sheet('sanada', 'sanada.png'),
+  sheet('hatchling', '1차.png'), sheet('adultDragon', '모션+물기.png'),
+  dragonActionSheet('adultDragonTail', '꼬리치기.png', 229),
+  dragonActionSheet('adultDragonBreath', '브레스.png', 199),
 ];
 
 export const UNIT_SHEET_BY_KEY: ReadonlyMap<string, SpriteAsset> = new Map(

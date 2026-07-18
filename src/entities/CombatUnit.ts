@@ -7,9 +7,11 @@ import type { BaseEntity } from './BaseEntity';
 export type AttackTarget = CombatUnit | BaseEntity;
 type UnitState = 'idle' | 'move' | 'attack';
 type ChannelKind = 'gatling' | 'flame';
+export type DragonAttackKind = 'bite' | 'tail' | 'breath';
 
 const FULL_CHARGE_TILES = 8;
 const MAX_CHARGE_DAMAGE_BONUS = .5;
+const DRAGON_BREATH_COOLDOWN_MS = 3000;
 
 let nextId = 1;
 
@@ -39,6 +41,9 @@ export class CombatUnit extends Phaser.GameObjects.Container {
   retiariusThrown = false;
   retiariusReloadAt = 0;
   hasStartedCombat = false;
+  dragonAttackKind: DragonAttackKind = 'bite';
+  dragonBreathReadyAt = 0;
+  dragonBreathTargets: AttackTarget[] = [];
   private channelKind: ChannelKind | null = null;
   private channelReadyAt = 0;
   private activeBurnStacks = 0;
@@ -60,6 +65,7 @@ export class CombatUnit extends Phaser.GameObjects.Container {
     this.team = team;
     this.displayTeam = displayTeam;
     this.hp = definition.hp;
+    this.dragonBreathReadyAt = definition.kind === 'adultDragon' ? scene.time.now + DRAGON_BREATH_COOLDOWN_MS : 0;
     this.shieldHp = definition.kind === 'shieldGuard' ? 8 : 0;
     this.textureKey = definition.texture;
     this.spriteLayout = this.getSpriteLayout(this.textureKey);
@@ -72,12 +78,12 @@ export class CombatUnit extends Phaser.GameObjects.Container {
       ? scene.add.sprite(x, y - 69, 'siphonarioiFlame', 0).setDepth(unitDepth - 1).setVisible(false)
       : null;
     this.hpBar = scene.add.graphics();
-    this.statusText = scene.add.text(0, -130, '', {
+    this.statusText = scene.add.text(0, -130 * this.visualScale, '', {
       fontFamily: 'Pretendard, Apple SD Gothic Neo, sans-serif',
       fontSize: '13px', color: '#fff9dd', stroke: '#16120d', strokeThickness: 4,
     }).setOrigin(.5);
     this.add([this.chargeFx, this.sprite, this.hpBar, this.statusText]);
-    this.setSize(72, 116);
+    this.setSize(this.footprintWidth, 116 * this.visualScale);
     this.setDepth(unitDepth);
     scene.add.existing(this);
 
@@ -85,7 +91,8 @@ export class CombatUnit extends Phaser.GameObjects.Container {
       this.lockSpriteGeometry();
       const frameNumber = Number(frame.textureFrame);
       if (this.channelKind) return;
-      if (this.attackLocked && !this.hitApplied && frameNumber === 10) {
+      const hitFrame = this.definition.kind === 'adultDragon' && this.dragonAttackKind !== 'bite' ? 2 : 10;
+      if (this.attackLocked && !this.hitApplied && frameNumber === hitFrame) {
         this.hitApplied = true;
         this.scene.events.emit('unit-hit-frame', this, this.pendingTarget);
       }
@@ -98,6 +105,11 @@ export class CombatUnit extends Phaser.GameObjects.Container {
         }
         this.attackLocked = false;
         this.pendingTarget = null;
+        this.dragonBreathTargets = [];
+        if (this.definition.kind === 'adultDragon' && this.textureKey !== this.definition.texture) {
+          this.setVisualTexture(this.definition.texture);
+        }
+        this.dragonAttackKind = 'bite';
         if (this.alive) this.playState('idle');
       }
     });
@@ -106,6 +118,9 @@ export class CombatUnit extends Phaser.GameObjects.Container {
   }
 
   get alive(): boolean { return this.hp > 0; }
+  get visualScale(): number { return this.definition.visualScale ?? 1; }
+  get footprintWidth(): number { return (this.definition.footprintTiles ?? 1) * 72; }
+  get collisionRadius(): number { return this.footprintWidth / 2; }
   get burnStackCount(): number { return this.activeBurnStacks; }
   get isBerserking(): boolean { return this.definition.kind === 'viking' && this.berserkUntil > this.scene.time.now; }
   get isStunned(): boolean { return this.alive && this.stunnedUntil > this.scene.time.now; }
@@ -142,6 +157,18 @@ export class CombatUnit extends Phaser.GameObjects.Container {
       this.hitApplied = true;
       this.scene.events.emit('unit-hit-frame', this, this.pendingTarget);
     }
+  }
+
+  startDragonAttack(kind: DragonAttackKind, targets: AttackTarget[], now: number): void {
+    if (this.definition.kind !== 'adultDragon' || targets.length === 0 || this.attackLocked || now < this.nextAttackAt) return;
+    this.dragonAttackKind = kind;
+    this.dragonBreathTargets = kind === 'breath' ? [...targets] : [];
+    if (kind === 'tail') this.setVisualTexture('adultDragonTail');
+    else if (kind === 'breath') {
+      this.setVisualTexture('adultDragonBreath');
+      this.dragonBreathReadyAt = now + DRAGON_BREATH_COOLDOWN_MS;
+    } else this.setVisualTexture(this.definition.texture);
+    this.startAttack(targets[0]!, now);
   }
 
   startChannel(kind: ChannelKind, now: number, warmupMs: number): void {
@@ -187,7 +214,12 @@ export class CombatUnit extends Phaser.GameObjects.Container {
     this.stunnedUntil = Math.max(this.stunnedUntil, now + durationMs);
     this.attackLocked = false;
     this.pendingTarget = null;
+    this.dragonBreathTargets = [];
     this.hitApplied = false;
+    if (this.definition.kind === 'adultDragon' && this.textureKey !== this.definition.texture) {
+      this.setVisualTexture(this.definition.texture);
+      this.dragonAttackKind = 'bite';
+    }
     this.sprite.stop();
     this.unitState = 'idle';
     this.sprite.play(`${this.textureKey}-idle`, true);
@@ -202,7 +234,7 @@ export class CombatUnit extends Phaser.GameObjects.Container {
   }
 
   applyBurnStack(): void {
-    if (!this.alive) return;
+    if (!this.alive || this.definition.kind === 'adultDragon') return;
     this.activeBurnStacks += 1;
     this.refreshBurnTint();
     this.updateStatus(this.scene.time.now);
@@ -341,7 +373,7 @@ export class CombatUnit extends Phaser.GameObjects.Container {
 
   showDamage(amount: number, color = '#fff1b4'): void {
     const label = Number.isInteger(amount) ? amount.toString() : amount.toFixed(1);
-    const text = this.scene.add.text(this.x, this.y - 120, `-${label}`, {
+    const text = this.scene.add.text(this.x, this.y - 120 * this.visualScale, `-${label}`, {
       fontFamily: 'Pretendard, sans-serif', fontSize: '20px', fontStyle: 'bold', color,
       stroke: '#1b120c', strokeThickness: 5,
     }).setOrigin(.5).setDepth(100);
@@ -403,10 +435,11 @@ export class CombatUnit extends Phaser.GameObjects.Container {
 
   private lockSpriteGeometry(): void {
     const direction = this.team === 'enemy' ? -1 : 1;
+    const assetScale = this.spriteLayout.displayScale ?? 1;
     this.sprite
       .setOrigin(.5, 1)
-      .setPosition(direction * this.spriteLayout.frameOffsetX * UNIT_SCALE, this.spriteLayout.frameOffsetY * UNIT_SCALE)
-      .setDisplaySize(this.spriteLayout.frameWidth * UNIT_SCALE, this.spriteLayout.frameHeight * UNIT_SCALE);
+      .setPosition(direction * this.spriteLayout.frameOffsetX * UNIT_SCALE * this.visualScale * assetScale, this.spriteLayout.frameOffsetY * UNIT_SCALE * this.visualScale * assetScale)
+      .setDisplaySize(this.spriteLayout.frameWidth * UNIT_SCALE * this.visualScale * assetScale, this.spriteLayout.frameHeight * UNIT_SCALE * this.visualScale * assetScale);
   }
 
   private refreshBurnTint(): void {
@@ -416,13 +449,14 @@ export class CombatUnit extends Phaser.GameObjects.Container {
   }
 
   private drawHealth(now: number): void {
-    const width = 70;
+    const width = this.definition.kind === 'adultDragon' ? 150 : 70;
+    const barY = -110 * this.visualScale;
     const ratio = Phaser.Math.Clamp(this.hp / this.definition.hp, 0, 1);
     const hpColor = this.displayTeam === 'player' ? 0x54dda0 : 0xf16b65;
     this.hpBar.clear();
-    this.hpBar.fillStyle(0x17130f, .85).fillRoundedRect(-width / 2 - 2, -112, width + 4, 10, 3);
-    this.hpBar.fillStyle(hpColor).fillRoundedRect(-width / 2, -110, width * ratio, 6, 2);
-    if (this.shieldHp > 0) this.hpBar.fillStyle(0x74c9ff).fillRoundedRect(-width / 2, -101, width * (this.shieldHp / 8), 4, 2);
+    this.hpBar.fillStyle(0x17130f, .85).fillRoundedRect(-width / 2 - 2, barY - 2, width + 4, 10, 3);
+    this.hpBar.fillStyle(hpColor).fillRoundedRect(-width / 2, barY, width * ratio, 6, 2);
+    if (this.shieldHp > 0) this.hpBar.fillStyle(0x74c9ff).fillRoundedRect(-width / 2, barY + 9, width * (this.shieldHp / 8), 4, 2);
     this.updateStatus(now);
   }
 

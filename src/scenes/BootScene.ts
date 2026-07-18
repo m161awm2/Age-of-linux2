@@ -32,14 +32,21 @@ export class BootScene extends Phaser.Scene {
       frameWidth: 352,
       frameHeight: 176,
     });
+    this.load.spritesheet('dragonBreathFx', 'assets/units/브레스 이펙트.png', {
+      frameWidth: 543,
+      frameHeight: 724,
+    });
   }
 
   create(): void {
-    UNIT_SHEETS.forEach(({ key }) => {
+    UNIT_SHEETS.forEach(({ key, animationFrames }) => {
       if (!this.anims.exists(`${key}-idle`)) {
-        this.anims.create({ key: `${key}-idle`, frames: this.anims.generateFrameNumbers(key, { start: 0, end: 3 }), frameRate: 6, repeat: -1 });
-        this.anims.create({ key: `${key}-move`, frames: this.anims.generateFrameNumbers(key, { start: 4, end: 7 }), frameRate: 8, repeat: -1 });
-        this.anims.create({ key: `${key}-attack`, frames: this.anims.generateFrameNumbers(key, { start: 8, end: 11 }), frameRate: 8, repeat: 0 });
+        const idle = animationFrames?.idle ?? { start: 0, end: 3 };
+        const move = animationFrames?.move ?? { start: 4, end: 7 };
+        const attack = animationFrames?.attack ?? { start: 8, end: 11 };
+        this.anims.create({ key: `${key}-idle`, frames: this.anims.generateFrameNumbers(key, idle), frameRate: 6, repeat: -1 });
+        this.anims.create({ key: `${key}-move`, frames: this.anims.generateFrameNumbers(key, move), frameRate: 8, repeat: -1 });
+        this.anims.create({ key: `${key}-attack`, frames: this.anims.generateFrameNumbers(key, attack), frameRate: 8, repeat: 0 });
       }
     });
     this.anims.create({
@@ -47,6 +54,12 @@ export class BootScene extends Phaser.Scene {
       frames: this.anims.generateFrameNumbers('siphonarioiFlame', { start: 0, end: 1 }),
       frameRate: 10,
       repeat: -1,
+    });
+    this.anims.create({
+      key: 'dragon-breath-fx',
+      frames: this.anims.generateFrameNumbers('dragonBreathFx', { start: 0, end: 3 }),
+      frameRate: 10,
+      repeat: 0,
     });
     const loadingScreen = document.getElementById('loading-screen');
     loadingScreen?.classList.add('loading-complete');

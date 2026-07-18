@@ -1,4 +1,4 @@
-import { ALLY_SPACING, BASE_MOVE_SPEED, BASE_STOP_DISTANCE, ENEMY_BASE_X, ENEMY_STOP_DISTANCE, PLAYER_BASE_X } from '../data/constants';
+import { BASE_MOVE_SPEED, BASE_STOP_DISTANCE, ENEMY_BASE_X, PLAYER_BASE_X } from '../data/constants';
 import type { Team } from '../data/types';
 import type { CombatUnit } from '../entities/CombatUnit';
 
@@ -26,15 +26,17 @@ export class MovementSystem {
       const enemyAhead = liveEnemies[0];
       const direction = unit.team === 'player' ? 1 : -1;
       const allyGap = allyAhead ? direction * (allyAhead.x - unit.x) : Number.POSITIVE_INFINITY;
+      const allySpacing = allyAhead ? unit.collisionRadius + allyAhead.collisionRadius : 0;
       // 간격 경계에서 매 프레임 move/idle이 뒤집히면 서로 다른 자세가 반복 재시작되어
       // 유닛이 위아래로 튀는 것처럼 보인다. 정지/출발 기준을 분리해 상태 떨림을 막는다.
       const spacingBuffer = 6;
       const blockedByAlly = allyAhead
-        ? allyGap < ALLY_SPACING + (this.allyBlocked.has(unit) ? spacingBuffer : -spacingBuffer)
+        ? allyGap < allySpacing + (this.allyBlocked.has(unit) ? spacingBuffer : -spacingBuffer)
         : false;
       if (blockedByAlly) this.allyBlocked.add(unit);
       else this.allyBlocked.delete(unit);
-      const blockedByEnemy = enemyAhead ? Math.abs(enemyAhead.x - unit.x) < ENEMY_STOP_DISTANCE : false;
+      const enemySpacing = enemyAhead ? unit.collisionRadius + enemyAhead.collisionRadius + 6 : 0;
+      const blockedByEnemy = enemyAhead ? Math.abs(enemyAhead.x - unit.x) < enemySpacing : false;
       const baseX = unit.team === 'player' ? ENEMY_BASE_X : PLAYER_BASE_X;
       const blockedByBase = Math.abs(unit.x - baseX) <= BASE_STOP_DISTANCE;
 

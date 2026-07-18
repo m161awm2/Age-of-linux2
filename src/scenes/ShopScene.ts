@@ -13,12 +13,12 @@ interface ShopCatalogEntry {
   path: SpecialPath;
 }
 
-// 엘리트 병종을 포함한 스페셜 유닛 전체를 표시하고, 같은 계열은 한 번의 구매로 함께 해금한다.
+// 상점에서는 각 스페셜 계열의 최종 병종을 대표로 표시한다.
+// 사나다를 구매하면 로닌 계열, 바이킹을 구매하면 펜리르 계열이 함께 해금된다.
 const SHOP_CATALOG: ShopCatalogEntry[] = [
-  { unit: 'ronin', path: 'ronin' },
   { unit: 'sanada', path: 'ronin' },
-  { unit: 'fenrir', path: 'fenrir' },
   { unit: 'viking', path: 'fenrir' },
+  { unit: 'adultDragon', path: 'hatchling' },
 ];
 
 export class ShopScene extends Phaser.Scene {

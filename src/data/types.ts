@@ -6,7 +6,7 @@ export type UnitKind =
   | 'soldier' | 'spearman' | 'halberd' | 'paladin' | 'crusader' | 'spartan' | 'shieldGuard'
   | 'archer' | 'musketeer' | 'gatlingGunner' | 'javelin' | 'retiarius' | 'fireArcher' | 'siphonarioi'
   | 'knight' | 'chariot' | 'wingedHussar' | 'dragoon'
-  | 'fenrir' | 'ronin' | 'viking' | 'sanada';
+  | 'fenrir' | 'ronin' | 'viking' | 'sanada' | 'hatchling' | 'adultDragon';
 
 export interface UnitDefinition {
   kind: UnitKind;
@@ -26,6 +26,8 @@ export interface UnitDefinition {
   speedMultiplier: number;
   description: string;
   eliteCooldown?: number;
+  footprintTiles?: number;
+  visualScale?: number;
 }
 
 export interface DifficultyConfig {

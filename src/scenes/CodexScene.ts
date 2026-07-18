@@ -44,7 +44,7 @@ const CODEX_TREES: CodexTree[] = [
   },
   {
     family: 'special',
-    branches: (['fenrir', 'ronin'] as const).map((first) => ({ first, second: SPECIAL_ELITE[first] })),
+    branches: (['fenrir', 'ronin', 'hatchling'] as const).map((first) => ({ first, second: SPECIAL_ELITE[first] })),
   },
 ];
 
@@ -85,8 +85,8 @@ const CONDITIONAL_STATS: Partial<Record<UnitKind, ConditionalStats>> = {
   },
   halberd: {
     condition: '항상 / 기병 공격 시',
-    effects: ['대상 최대 HP의 20% 추가', '기병에게 기본 공격력 8→14 (×1.8)', '첫 돌격 1회 반격'],
-    overrides: { damage: '8+HP 20%*' },
+    effects: ['대상 최대 HP의 15% 추가', '기병에게 기본 공격력 8→14 (×1.8)', '첫 돌격 1회 반격'],
+    overrides: { damage: '8+HP 15%*' },
   },
   crusader: {
     condition: '공격 2회 적중마다',
@@ -137,13 +137,22 @@ const CONDITIONAL_STATS: Partial<Record<UnitKind, ConditionalStats>> = {
   },
   viking: {
     condition: 'HP 50% 이하, 최초 1회·7초',
-    effects: ['공격력 19→38', '공격 간격 0.75→0.45초', '이동속도 1.8→2.5배', '받는 피해 40%', '적중 시 HP 1 회복'],
-    overrides: { damage: '19→38', dps: '25.33→84.44', attackInterval: '0.75→0.45초', speed: '1.8→2.5배' },
+    effects: ['공격 간격 0.75→0.45초', '이동속도 1.8→2.5배', '받는 피해 40%', '적중 시 HP 1 회복'],
+    overrides: { dps: '25.33→42.22', attackInterval: '0.75→0.45초', speed: '1.8→2.5배' },
   },
   sanada: {
     condition: '8칸 돌진 / 패링 준비 시',
-    effects: ['이동속도 1.8→2.4배', '첫 충돌 피해 22→33(최대)', '공격 무효화 후 2배 반격', '패링 재사용 2초'],
+    effects: ['이동속도 1.8→2.4배', '첫 충돌 피해 22→33(최대)', '직접 공격 무효화 후 2배 반격', '화염 분사·드래곤 브레스 패링 불가', '패링 재사용 2초'],
     overrides: { damage: '22→33*', speed: '1.8→2.4배' },
+  },
+  hatchling: {
+    condition: '일반 공격 적중 시 100% 확률',
+    effects: ['화상 1중첩', '0.5초마다 대상 최대 HP 5% 피해 ×3'],
+  },
+  adultDragon: {
+    condition: '물기 / 꼬리치기 / 브레스',
+    effects: ['물기 대신 30% 확률로 꼬리치기', '꼬리치기 적중 시 0.8초 기절', '3초마다 전방 3칸 내 적 인식 후 5칸 범위에 23 피해와 화상', '화상 면역', '일반 유닛 3칸 크기', '생산 재정비 35초'],
+    overrides: { damage: '28 / 브레스 23', range: '근접 1 / 브레스 5칸' },
   },
 };
 
