@@ -2,7 +2,7 @@
   "name": "age-of-linux2",
   "productName": "Age of Linux 2",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "전직과 병종 상성으로 적의 성을 무너뜨리는 2D 전략 게임",
   "author": "Ku-bonmoo",
   "type": "module",
@@ -16,9 +16,9 @@
     "preview": "vite preview --host 0.0.0.0",
     "desktop": "npm run build && electron .",
     "desktop:icon": "node scripts/generate-desktop-icon.mjs",
-    "build:mac": "npm run desktop:icon && npm run build && electron-builder --mac dmg zip",
-    "build:win": "npm run desktop:icon && npm run build && electron-builder --win nsis portable",
-    "build:linux": "npm run desktop:icon && npm run build && electron-builder --linux AppImage tar.gz"
+    "build:mac": "npm run desktop:icon && npm run build && electron-builder --mac dmg zip --publish never",
+    "build:win": "npm run desktop:icon && npm run build && electron-builder --win nsis portable --publish never",
+    "build:linux": "npm run desktop:icon && npm run build && electron-builder --linux AppImage tar.gz --publish never"
   },
   "devDependencies": {
     "@supabase/supabase-js": "^2.110.5",
