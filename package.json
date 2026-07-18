@@ -1,23 +1,76 @@
 {
   "name": "age-of-linux2",
+  "productName": "Age of Linux 2",
   "private": true,
   "version": "1.0.0",
+  "description": "전직과 병종 상성으로 적의 성을 무너뜨리는 2D 전략 게임",
+  "author": "Ku-bonmoo",
   "type": "module",
+  "main": "electron/main.cjs",
   "scripts": {
     "assets:transparency": "node scripts/remove-baked-backgrounds.mjs",
     "assets:normalize": "node scripts/normalize-sprite-frames.mjs",
     "assets:prepare": "npm run assets:normalize",
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
-    "preview": "vite preview --host 0.0.0.0"
-  },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.110.5",
-    "phaser": "^3.90.0"
+    "preview": "vite preview --host 0.0.0.0",
+    "desktop": "npm run build && electron .",
+    "desktop:icon": "node scripts/generate-desktop-icon.mjs",
+    "build:mac": "npm run desktop:icon && npm run build && electron-builder --mac dmg zip",
+    "build:win": "npm run desktop:icon && npm run build && electron-builder --win nsis portable",
+    "build:linux": "npm run desktop:icon && npm run build && electron-builder --linux AppImage tar.gz"
   },
   "devDependencies": {
+    "@supabase/supabase-js": "^2.110.5",
+    "electron": "^43.1.1",
+    "electron-builder": "^26.15.3",
+    "phaser": "^3.90.0",
     "sharp": "^0.35.3",
     "typescript": "^5.9.3",
     "vite": "^7.2.4"
+  },
+  "build": {
+    "appId": "io.github.m161awm2.ageoflinux2",
+    "productName": "Age of Linux 2",
+    "asar": true,
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.games",
+      "icon": "build/icon.png",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "win": {
+      "icon": "build/icon.png",
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "linux": {
+      "icon": "build/icon.png",
+      "category": "Game",
+      "target": [
+        "AppImage",
+        "tar.gz"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}"
   }
 }

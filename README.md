@@ -16,6 +16,27 @@ npm run build
 npm run preview
 ```
 
+## 데스크톱 게임
+
+브라우저 없이 Electron 게임 창으로 실행:
+
+```bash
+npm run desktop
+```
+
+운영체제별 설치 파일 생성:
+
+```bash
+npm run build:mac
+npm run build:win
+npm run build:linux
+```
+
+완성된 파일은 `release/`에 생성됩니다. `F11` 키로 전체 화면과 창 모드를 전환할 수 있습니다.
+앱 아이콘에는 프로젝트 소유자의 GitHub 프로필 이미지가 사용됩니다.
+
+GitHub의 **Actions → 데스크톱 게임 빌드 → Run workflow**에서도 macOS, Windows, Linux용 파일을 한 번에 만들 수 있습니다. `v1.0.0` 형태의 태그를 push하면 실행 파일이 GitHub Release에도 자동으로 첨부됩니다.
+
 ## 조작
 
 - `1` 보병, `2` 궁수, `3` 기병, `4` 스페셜 생산
