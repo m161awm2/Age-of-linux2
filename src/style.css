@@ -123,6 +123,24 @@ kbd {
 .volume-setting output { min-width: 52px; color: #e8ce6c; font-weight: 900; text-align: right; }
 .volume-setting input { width: 100%; accent-color: #aaca65; cursor: pointer; }
 .volume-setting small { display: block; margin-top: 10px; color: #8f9b91; font-size: 11px; }
+.online-users-setting { margin-top: 12px; padding: 16px 18px; border: 1px solid rgba(112, 174, 139, .3); border-radius: 12px; background: rgba(5, 17, 13, .46); }
+.online-users-summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.online-users-summary > span { display: flex; align-items: center; gap: 8px; }
+.online-users-summary i, .online-user-details li i { width: 8px; height: 8px; flex: 0 0 auto; border-radius: 50%; background: #72dc87; box-shadow: 0 0 9px rgba(114, 220, 135, .7); }
+.online-users-summary strong { color: #edf1d8; font-size: 14px; }
+.online-users-summary output { color: #8ee7a0; font-size: 12px; font-weight: 900; }
+.online-users-setting > p:first-of-type { margin: 8px 0 11px; color: #899b8f; font-size: 10px; }
+.online-users-setting > button { width: 100%; height: 34px; border: 1px solid #536f5e; border-radius: 8px; color: #dce8dc; background: #1a3026; font-size: 11px; font-weight: 800; cursor: pointer; }
+.online-users-setting > button:hover { border-color: #83b28f; background: #244336; }
+.online-user-details { max-height: 180px; margin-top: 10px; overflow-y: auto; border-top: 1px solid rgba(143, 177, 150, .18); }
+.online-user-details.hidden { display: none; }
+.online-user-details ul { display: grid; gap: 0; margin: 0; padding: 0; list-style: none; }
+.online-user-details li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 2px; border-bottom: 1px solid rgba(143, 177, 150, .12); }
+.online-user-details li > span { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.online-user-details li strong { overflow: hidden; color: #e6ecd9; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.online-user-details time { flex: 0 0 auto; color: #9ba99f; font-size: 9px; }
+.online-users-empty { margin: 12px 0 2px; color: #89978d; font-size: 10px; text-align: center; }
+.online-users-status { min-height: 13px; margin: 7px 0 0; color: #c8a98e; font-size: 9px; }
 
 .auth-screen { position: fixed; inset: 0; z-index: 9000; display: grid; place-items: center; padding: 24px; background: rgba(3, 9, 7, .48); backdrop-filter: blur(5px); }
 .auth-card { width: min(430px, 88vw); padding: 34px; border: 1px solid #ad9b60; border-radius: 20px; background: linear-gradient(145deg, rgba(28, 48, 38, .98), rgba(10, 19, 15, .99)); box-shadow: 0 28px 90px rgba(0, 0, 0, .68), inset 0 1px rgba(255, 255, 255, .08); }
@@ -265,6 +283,8 @@ kbd {
   .settings-card { max-height: 90vh; padding: 18px; }
   .settings-card h2 { margin-bottom: 12px; font-size: 24px; }
   .volume-setting { padding: 11px; }
+  .online-users-setting { margin-top: 8px; padding: 9px 11px; }
+  .online-user-details { max-height: 100px; }
 
   .mobile-device .home-chat { top: auto; right: 10px; bottom: 9px; width: 278px; height: 43px; display: block; border-radius: 11px; transition: height .18s ease; }
   .mobile-device .home-chat.expanded { top: 48px; bottom: 9px; height: auto; display: grid; }

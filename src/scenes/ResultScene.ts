@@ -33,30 +33,25 @@ export class ResultScene extends Phaser.Scene {
     });
     this.createButton(width / 2 + 105, actionsY, '시작 화면', () => this.scene.start('StartScene'));
     if (this.result.victory && !this.result.isPvp) {
-      this.createCampaignReward(width / 2, height * .54);
-      this.createRankSubmission(width / 2, height * .63);
+      const rewardStatus = this.createCampaignReward(width / 2, height * .54);
+      this.createRankSubmission(width / 2, height * .63, rewardStatus);
     }
     this.input.keyboard?.on('keydown-R', () => this.scene.start(this.result.isPvp ? 'OnlineLobbyScene' : 'GameScene', this.result.isPvp ? undefined : { difficulty: this.result.difficulty }));
   }
 
-  private createCampaignReward(x: number, y: number): void {
+  private createCampaignReward(x: number, y: number): Phaser.GameObjects.Text {
     const expected = CAMPAIGN_GOLD_REWARDS[this.result.difficulty];
-    const status = this.add.text(x, y, `캠페인 보상 +${expected}💎 지급 중…`, {
+    const status = this.add.text(x, y, `캠페인 승리 검증 후 +${expected}💎 지급 예정`, {
       fontFamily: 'Pretendard, Apple Color Emoji, sans-serif', fontSize: '18px', fontStyle: 'bold', color: '#9ee8ff', align: 'center',
     }).setOrigin(.5);
     if (!this.result.rankedRunId) {
       status.setText('보상 서버에 연결되지 않아 보석을 지급하지 못했습니다.').setColor('#e7b29d');
-      return;
+      return status;
     }
-    void PlayerProgressService.claimCampaignReward(this.result.rankedRunId, this.result.difficulty)
-      .then((reward) => status.setText(`클리어 보상 +${reward.awarded}💎  ·  보유 ${reward.gold}💎`).setColor('#9ee8ff'))
-      .catch((error) => {
-        console.warn('캠페인 보석 보상 지급 실패', error);
-        status.setText('클리어 보상을 지급하지 못했습니다.').setColor('#ffb09c');
-      });
+    return status;
   }
 
-  private createRankSubmission(x: number, y: number): void {
+  private createRankSubmission(x: number, y: number, rewardStatus: Phaser.GameObjects.Text): void {
     const status = this.add.text(x, y, '', {
       fontFamily: 'Pretendard, sans-serif', fontSize: '15px', color: '#e9e4bd', align: 'center',
     }).setOrigin(.5);
@@ -68,14 +63,15 @@ export class ResultScene extends Phaser.Scene {
     status.setText('로그인 아이디로 랭킹 기록을 자동 등록하는 중…');
     void AuthService.getLoginId().then((loginId) => {
       if (!loginId) throw new Error('로그인 아이디를 확인할 수 없습니다.');
-      return this.submitRank(loginId, status);
+      return this.submitRank(loginId, status, rewardStatus);
     }).catch((error) => {
       console.warn('자동 랭킹 등록 실패', error);
       status.setText(`랭킹 자동 등록 실패: ${this.getErrorMessage(error)}`).setColor('#ffb09c');
+      rewardStatus.setText('승리 기록을 검증하지 못해 보상을 지급하지 않았습니다.').setColor('#ffb09c');
     });
   }
 
-  private async submitRank(nickname: string, status: Phaser.GameObjects.Text): Promise<void> {
+  private async submitRank(nickname: string, status: Phaser.GameObjects.Text, rewardStatus: Phaser.GameObjects.Text): Promise<void> {
     if (this.submitting || !this.result.rankedRunId) return;
     this.submitting = true;
     status.setText(`${nickname} 이름으로 기록을 등록하는 중…`).setColor('#e9e4bd');
@@ -86,7 +82,16 @@ export class ResultScene extends Phaser.Scene {
     } catch (error) {
       console.warn('랭킹 기록 등록 실패', error);
       status.setText(`기록 등록 실패: ${this.getErrorMessage(error)}`).setColor('#ffb09c');
+      rewardStatus.setText('승리 기록을 검증하지 못해 보상을 지급하지 않았습니다.').setColor('#ffb09c');
       this.submitting = false;
+      return;
+    }
+    try {
+      const reward = await PlayerProgressService.claimCampaignReward(this.result.rankedRunId, this.result.difficulty);
+      rewardStatus.setText(`클리어 보상 +${reward.awarded}💎  ·  보유 ${reward.gold}💎`).setColor('#9ee8ff');
+    } catch (error) {
+      console.warn('캠페인 보석 보상 지급 실패', error);
+      rewardStatus.setText(`보상 지급 실패: ${this.getErrorMessage(error)}`).setColor('#ffb09c');
     }
   }
 

@@ -7,6 +7,7 @@ import { TutorialProgressService, type MenuTutorialStep } from '../services/Tuto
 import { AuthService } from '../services/AuthService';
 import { HomeChatPanel } from '../ui/HomeChatPanel';
 import { PlayerProgressService } from '../services/PlayerProgressService';
+import { PresenceService } from '../services/PresenceService';
 
 const DIFFICULTY_STYLES: Record<Difficulty, { top: number; bottom: number; border: number; glow: number; symbol: string; hint: string }> = {
   Easy: { top: 0x39895b, bottom: 0x17452e, border: 0x8be2aa, glow: 0x69d894, symbol: '◆', hint: '입문' },
@@ -24,6 +25,7 @@ export class StartScene extends Phaser.Scene {
 
   create(): void {
     const { width, height } = this.scale;
+    PresenceService.start();
     const mobileLandscape = height < 450;
     const settingsPanel = new SettingsPanel();
     AudioService.prepare(this);

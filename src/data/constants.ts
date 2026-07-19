@@ -48,7 +48,7 @@ export const SECOND_PROMOTIONS: Partial<Record<UnitKind, UnitKind>> = {
   fireArcher: 'siphonarioi',
 };
 
-export const SPECIAL_UNLOCK_COST: Record<'ronin' | 'fenrir' | 'hatchling', number> = { ronin: 200, fenrir: 200, hatchling: 500 };
+export const SPECIAL_UNLOCK_COST: Record<'ronin' | 'fenrir' | 'hatchling', number> = { ronin: 200, fenrir: 200, hatchling: 250 };
 export const SPECIAL_ELITE: Record<'ronin' | 'fenrir' | 'hatchling', UnitKind> = { ronin: 'sanada', fenrir: 'viking', hatchling: 'adultDragon' };
 
 export const CAMPAIGN_GOLD_REWARDS: Record<Difficulty, number> = {

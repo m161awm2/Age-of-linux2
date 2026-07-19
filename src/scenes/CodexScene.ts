@@ -434,8 +434,14 @@ export class CodexScene extends Phaser.Scene {
     const previews: Array<{ label: string; animation: 'idle' | 'move' | 'attack'; texture: string }> = [
       { label: '대기', animation: 'idle', texture: definition.texture },
       { label: '이동', animation: 'move', texture: definition.texture },
-      { label: '공격', animation: 'attack', texture: definition.texture },
+      { label: definition.kind === 'adultDragon' ? '공격 (물기)' : '공격', animation: 'attack', texture: definition.texture },
     ];
+    if (definition.kind === 'adultDragon') {
+      previews.push(
+        { label: '꼬리치기', animation: 'attack', texture: 'adultDragonTail' },
+        { label: '브레스', animation: 'attack', texture: 'adultDragonBreath' },
+      );
+    }
     const alternateState = ALTERNATE_STATES[definition.kind];
     if (alternateState) previews.push({ label: alternateState.label, animation: 'idle', texture: alternateState.texture });
     const gap = Math.min(24, width * .025);
@@ -460,9 +466,10 @@ export class CodexScene extends Phaser.Scene {
         .setOrigin(.5, 1).setScale(spriteScale);
       const animationKey = animation === 'attack' ? `${texture}-codex-attack` : `${texture}-${animation}`;
       if (animation === 'attack' && !this.anims.exists(animationKey)) {
+        const attackFrames = layout.animationFrames?.attack ?? { start: 8, end: 11 };
         this.anims.create({
           key: animationKey,
-          frames: this.anims.generateFrameNumbers(texture, { start: 8, end: 11 }),
+          frames: this.anims.generateFrameNumbers(texture, attackFrames),
           frameRate: 8,
           repeat: -1,
           repeatDelay: 280,
