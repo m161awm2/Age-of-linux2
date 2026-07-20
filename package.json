@@ -2,7 +2,7 @@
   "name": "age-of-linux2",
   "productName": "Age of Linux 2",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "전직과 병종 상성으로 적의 성을 무너뜨리는 2D 전략 게임",
   "author": "Ku-bonmoo",
   "type": "module",

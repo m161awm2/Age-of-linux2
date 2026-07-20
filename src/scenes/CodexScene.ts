@@ -107,7 +107,7 @@ const CONDITIONAL_STATS: Partial<Record<UnitKind, ConditionalStats>> = {
   },
   retiarius: {
     condition: '원거리 투창 / 근거리 전환',
-    effects: ['투창 피해 9', '투창 2초마다 재충전', '근거리 단타 피해 12'],
+    effects: ['투창 피해 9', '투창 1.5초마다 재충전', '근거리 단타 피해 12'],
     overrides: { damage: '9→12', dps: '10.00→13.33', range: '5→1.5칸' },
   },
   siphonarioi: {

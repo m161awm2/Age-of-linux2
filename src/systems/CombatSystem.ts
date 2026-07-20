@@ -6,6 +6,7 @@ import { CombatUnit, type AttackTarget } from '../entities/CombatUnit';
 
 const CAVALRY = new Set(['knight', 'chariot', 'wingedHussar', 'dragoon']);
 const RANGED = new Set(['archer', 'musketeer', 'gatlingGunner', 'javelin', 'retiarius', 'fireArcher', 'siphonarioi', 'dragoon']);
+const RETIARIUS_RELOAD_MS = 1500;
 const SIPHONARIOI_ATTACK_RANGE_TILES = 4;
 const FRONT_TARGETERS = new Set([
   'soldier', 'spearman', 'halberd', 'paladin', 'crusader', 'spartan', 'shieldGuard',
@@ -116,7 +117,7 @@ export class CombatSystem {
     unit.startAttack(target, now);
     if (unit.attackLocked) {
       unit.retiariusThrown = true;
-      unit.retiariusReloadAt = now + 2000;
+      unit.retiariusReloadAt = now + RETIARIUS_RELOAD_MS;
     }
   }
 
